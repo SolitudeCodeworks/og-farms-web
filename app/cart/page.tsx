@@ -1,0 +1,167 @@
+"use client"
+
+import Link from "next/link"
+import Image from "next/image"
+import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useCartStore } from "@/lib/store/cart"
+import { formatPrice } from "@/lib/utils"
+
+export default function CartPage() {
+  const { items, updateQuantity, removeItem, getTotalPrice } = useCartStore()
+  const total = getTotalPrice()
+  const tax = total * 0.1 // 10% tax
+  const shipping = total > 50 ? 0 : 10
+  const finalTotal = total + tax + shipping
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+          <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Your cart is empty
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Add some products to get started
+          </p>
+          <Button asChild>
+            <Link href="/shop">Continue Shopping</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-bold text-foreground mb-8">Shopping Cart</h1>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Cart Items */}
+        <div className="lg:col-span-2 space-y-4">
+          {items.map((item) => (
+            <div
+              key={item.productId}
+              className="flex gap-4 rounded-lg border border-border bg-card p-4"
+            >
+              <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
+              <div className="flex flex-1 flex-col">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {item.category}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-foreground">
+                    {formatPrice(item.price * item.quantity)}
+                  </p>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        updateQuantity(item.productId, item.quantity - 1)
+                      }
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-12 text-center font-medium">
+                      {item.quantity}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        updateQuantity(item.productId, item.quantity + 1)
+                      }
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeItem(item.productId)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Order Summary */}
+        <div className="lg:col-span-1">
+          <div className="rounded-lg border border-border bg-card p-6 sticky top-20">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Order Summary
+            </h2>
+
+            <div className="space-y-3 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium text-foreground">
+                  {formatPrice(total)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tax (10%)</span>
+                <span className="font-medium text-foreground">
+                  {formatPrice(tax)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Shipping</span>
+                <span className="font-medium text-foreground">
+                  {shipping === 0 ? "FREE" : formatPrice(shipping)}
+                </span>
+              </div>
+              {total < 50 && (
+                <p className="text-xs text-muted-foreground">
+                  Add {formatPrice(50 - total)} more for free shipping
+                </p>
+              )}
+              <div className="border-t border-border pt-3">
+                <div className="flex justify-between">
+                  <span className="text-base font-semibold text-foreground">
+                    Total
+                  </span>
+                  <span className="text-base font-bold text-foreground">
+                    {formatPrice(finalTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" size="lg" asChild>
+              <Link href="/checkout">Proceed to Checkout</Link>
+            </Button>
+
+            <Button variant="outline" className="w-full mt-2" asChild>
+              <Link href="/shop">Continue Shopping</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
