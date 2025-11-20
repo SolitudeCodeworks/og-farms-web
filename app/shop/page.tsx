@@ -8,7 +8,7 @@ const products = [
     slug: "granddaddy-purple",
     price: 21,
     compareAtPrice: 25,
-    image: "/products/placeholder-1.jpg",
+    image: "/products/placeholder.svg",
     category: "FLOWER",
     thcContent: 23,
     stock: 10,

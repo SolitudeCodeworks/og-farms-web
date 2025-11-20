@@ -27,7 +27,7 @@ export async function getFrequentlyBoughtTogether(productId: string, limit: numb
     })
 
     return {
-      products: frequentlyBought.map((item) => item.productB),
+      products: frequentlyBought.map((item: any) => item.productB),
     }
   } catch (error) {
     console.error("Error fetching frequently bought together:", error)

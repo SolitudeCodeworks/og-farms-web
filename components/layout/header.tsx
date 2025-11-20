@@ -3,12 +3,14 @@
 import Link from "next/link"
 import { ShoppingCart, User, Menu, X, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useCartStore } from "@/lib/store/cart"
+import { useCart } from "@/contexts/cart-context"
+import { CartDropdown } from "@/components/cart/cart-dropdown"
 import { useState } from "react"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const totalItems = useCartStore((state) => state.getTotalItems())
+  const [cartOpen, setCartOpen] = useState(false)
+  const { totalItems } = useCart()
 
   const navigation = [
     { name: "Shop", href: "/shop" },
@@ -70,17 +72,46 @@ export function Header() {
               <span className="sr-only">Account</span>
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild className="relative">
-            <Link href="/cart">
+          <div 
+            className="relative"
+            onMouseEnter={() => setCartOpen(true)}
+            onMouseLeave={() => setCartOpen(false)}
+          >
+            <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                <span 
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+                  style={{
+                    background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                    color: '#000',
+                  }}
+                >
                   {totalItems}
                 </span>
               )}
               <span className="sr-only">Shopping cart</span>
-            </Link>
-          </Button>
+            </Button>
+            
+            {/* Cart Dropdown */}
+            {cartOpen && (
+              <div 
+                className="absolute right-0 top-full pt-2 z-50"
+              >
+                <div
+                  className="rounded-2xl shadow-2xl border"
+                  style={{
+                    backgroundColor: 'rgba(10, 10, 10, 0.98)',
+                    borderColor: 'rgba(74, 222, 128, 0.4)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(74, 222, 128, 0.2)',
+                  }}
+                >
+                  <CartDropdown />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

@@ -44,7 +44,7 @@ export default async function ProductPage({
           </div>
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-4">
-              {product.images.slice(1, 5).map((image, index) => (
+              {product.images.slice(1, 5).map((image: string, index: number) => (
                 <div
                   key={index}
                   className="relative aspect-square overflow-hidden rounded-lg bg-muted"
@@ -180,7 +180,7 @@ export default async function ProductPage({
             Frequently Bought Together
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {frequentlyBought.map((item) => (
+            {frequentlyBought.map((item: any) => (
               <ProductCard
                 key={item.id}
                 id={item.id}

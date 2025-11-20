@@ -49,7 +49,7 @@ export async function createReview(data: {
       select: { rating: true },
     })
 
-    const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    const averageRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
 
     await prisma.product.update({
       where: { id: data.productId },
@@ -128,7 +128,7 @@ export async function updateReview(reviewId: string, data: {
       select: { rating: true },
     })
 
-    const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    const averageRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
 
     await prisma.product.update({
       where: { id: review.productId },
@@ -170,7 +170,7 @@ export async function deleteReview(reviewId: string) {
     })
 
     const averageRating = reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
       : 0
 
     await prisma.product.update({

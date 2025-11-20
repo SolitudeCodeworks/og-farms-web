@@ -65,7 +65,7 @@ export async function getCartFromDatabase() {
     })
 
     return {
-      items: cartItems.map((item) => ({
+      items: cartItems.map((item: any) => ({
         id: item.id,
         productId: item.product.id,
         name: item.product.name,
