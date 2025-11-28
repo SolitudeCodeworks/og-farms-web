@@ -7,28 +7,20 @@ export function Footer() {
       { name: "All Products", href: "/shop" },
       { name: "Flower", href: "/shop?category=FLOWER" },
       { name: "Accessories", href: "/shop?category=ACCESSORIES" },
-      { name: "New Arrivals", href: "/shop?sort=newest" },
     ],
-    company: [
-      { name: "About Us", href: "/about" },
-      { name: "Contact", href: "/contact" },
-      { name: "Blog", href: "/blog" },
-      { name: "Careers", href: "/careers" },
-    ],
-    support: [
-      { name: "FAQ", href: "/faq" },
-      { name: "Shipping", href: "/shipping" },
-      { name: "Returns", href: "/returns" },
-      { name: "Privacy Policy", href: "/privacy" },
+    account: [
+      { name: "My Account", href: "/account" },
+      { name: "My Orders", href: "/orders" },
+      { name: "Favourites", href: "/favourites" },
     ],
   }
 
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
+          <div>
             <Link href="/" className="text-2xl font-bold text-primary">
               OG Farms
             </Link>
@@ -63,7 +55,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Links */}
+          {/* Shop Links */}
           <div>
             <h3 className="text-sm font-semibold text-foreground">Shop</h3>
             <ul className="mt-4 space-y-3">
@@ -80,26 +72,11 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Account Links */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Company</h3>
+            <h3 className="text-sm font-semibold text-foreground">Account</h3>
             <ul className="mt-4 space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Support</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.support.map((link) => (
+              {footerLinks.account.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
