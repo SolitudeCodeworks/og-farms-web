@@ -95,7 +95,7 @@ export function ProductCard({
 
   return (
     <div className="group relative" data-aos="fade-up" data-aos-duration="600">
-      <Link href={`/product/${slug}`}>
+      <Link href={`/products/${slug}`}>
         <div 
           className="relative aspect-square overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
           style={{
@@ -171,7 +171,7 @@ export function ProductCard({
 
       {/* Product Info */}
       <div className="mt-4 space-y-2">
-        <Link href={`/product/${slug}`}>
+        <Link href={`/products/${slug}`}>
           <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors line-clamp-2">
             {name}
           </h3>

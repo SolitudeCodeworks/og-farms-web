@@ -484,7 +484,7 @@ export default function ProductDetailPage() {
         </Link>
 
         {/* Product Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 mb-16">
           {/* Images */}
           <div className="space-y-4">
             {/* Main Image */}
@@ -525,7 +525,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Info */}
-          <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-2xl p-8">
+          <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-2xl p-4 sm:p-6 lg:p-8">
             {/* Category & Age Restriction */}
             <div className="flex items-center gap-2 mb-4">
               <span className="px-3 py-1 bg-zinc-800 text-gray-400 text-sm rounded-full capitalize">
@@ -544,12 +544,12 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Name */}
-            <h1 className="text-4xl font-bold text-white mb-4">{product.name}</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">{product.name}</h1>
 
             {/* Rating */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
               <StarRating rating={product.averageRating || 0} />
-              <span className="text-gray-400">
+              <span className="text-sm sm:text-base text-gray-400">
                 {product.averageRating?.toFixed(1) || '0.0'} ({product.totalReviews || 0} reviews)
               </span>
             </div>
@@ -557,21 +557,21 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="mb-6">
               {showDiscount ? (
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-bold text-primary">
+                <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
                     R{discountedPrice.toFixed(2)}
                   </span>
-                  <span className="text-2xl text-gray-400 line-through">
+                  <span className="text-lg sm:text-xl lg:text-2xl text-gray-400 line-through">
                     R{product.price.toFixed(2)}
                   </span>
-                  <span className="px-3 py-1 bg-primary/20 text-primary text-sm font-bold rounded-full">
+                  <span className="px-2 sm:px-3 py-1 bg-primary/20 text-primary text-xs sm:text-sm font-bold rounded-full">
                     {product.discountType === "PERCENTAGE" 
                       ? `${product.discountValue}% OFF`
                       : `R${product.discountValue} OFF`}
                   </span>
                 </div>
               ) : (
-                <span className="text-4xl font-bold text-primary">
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
                   R{product.price.toFixed(2)}
                 </span>
               )}
@@ -631,8 +631,8 @@ export default function ProductDetailPage() {
                 </div>
               )}
               
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 sm:px-4">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={!session && product?.ageRestricted}
@@ -683,16 +683,16 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Reviews Section */}
-        <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-2xl p-8">
+        <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-2xl p-4 sm:p-6 lg:p-8">
           {/* Header with Rating Summary */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-white">Customer Reviews</h2>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">Customer Reviews</h2>
               {session ? (
                 userReview ? (
                   <button
                     onClick={startEditReview}
-                    className="px-6 py-3 font-bold rounded-full transition-all hover:scale-105"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-bold rounded-full transition-all hover:scale-105"
                     style={{
                       background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                       color: '#000',
@@ -706,7 +706,7 @@ export default function ProductDetailPage() {
                       setEditingReview(false)
                       setShowReviewForm(!showReviewForm)
                     }}
-                    className="px-6 py-3 font-bold rounded-full transition-all hover:scale-105"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-bold rounded-full transition-all hover:scale-105"
                     style={{
                       background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                       color: '#000',
@@ -718,7 +718,7 @@ export default function ProductDetailPage() {
               ) : (
                 <Link
                   href="/login"
-                  className="px-6 py-3 font-bold rounded-full transition-all hover:scale-105"
+                  className="w-full sm:w-auto inline-block text-center px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-bold rounded-full transition-all hover:scale-105"
                   style={{
                     background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                     color: '#000',
@@ -730,9 +730,9 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Rating Summary */}
-            <div className="flex items-center gap-8 p-6 bg-zinc-800 rounded-xl">
-              <div className="text-center">
-                <div className="text-5xl font-bold text-white mb-2">
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 p-4 sm:p-6 bg-zinc-800 rounded-xl">
+              <div className="text-center sm:min-w-[120px]">
+                <div className="text-4xl sm:text-5xl font-bold text-white mb-2">
                   {product.averageRating?.toFixed(1) || '0.0'}
                 </div>
                 <div className="mb-2">
@@ -884,8 +884,8 @@ export default function ProductDetailPage() {
               </div>
             ) : (
               reviews.map((review) => (
-                <div key={review.id} className="p-6 bg-zinc-800 rounded-xl">
-                  <div className="flex items-start justify-between mb-3">
+                <div key={review.id} className="p-4 sm:p-6 bg-zinc-800 rounded-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-bold text-white">{review.user.name}</span>
@@ -897,8 +897,8 @@ export default function ProductDetailPage() {
                       </div>
                       <StarRating rating={review.rating} size="w-4 h-4" />
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-400">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span className="text-xs sm:text-sm text-gray-400">
                         {new Date(review.createdAt).toLocaleDateString()}
                       </span>
                       {session?.user?.role === 'ADMIN' && (

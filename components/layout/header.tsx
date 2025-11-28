@@ -49,8 +49,51 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile menu button */}
-        <div className="flex lg:hidden">
+        {/* Mobile actions */}
+        <div className="flex items-center gap-2 lg:hidden">
+          {/* Mobile Cart */}
+          <Button variant="ghost" size="icon" asChild className="relative">
+            <Link href="/cart">
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span 
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+                  style={{
+                    background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                    color: '#000',
+                  }}
+                >
+                  {totalItems}
+                </span>
+              )}
+              <span className="sr-only">Shopping cart</span>
+            </Link>
+          </Button>
+
+          {/* Mobile User */}
+          {session ? (
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/account">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                    color: '#000',
+                  }}
+                >
+                  {session.user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/login">
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
+          )}
+
+          {/* Mobile menu button */}
           <button
             type="button"
             className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-foreground"
@@ -250,39 +293,84 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
+            
+            {/* Quick Links for logged-in users */}
+            {session && (
+              <>
+                <Link
+                  href="/account"
+                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-foreground hover:bg-accent"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Account
+                </Link>
+                <Link
+                  href="/orders"
+                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-foreground hover:bg-accent"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Orders
+                </Link>
+                {session.user?.role === "ADMIN" && (
+                  <Link
+                    href="/admin"
+                    className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-primary hover:bg-accent"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+              </>
+            )}
+
             {/* Mobile Auth Buttons */}
-            <div className="flex gap-2 pt-4 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
+            <div className="flex flex-col gap-3 pt-4 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
               {session ? (
                 <>
-                  <div className="flex-1 px-3 py-2 text-sm">
+                  <div className="px-3 py-2 text-sm bg-accent rounded-lg">
                     <p className="font-bold text-foreground">{session.user?.name}</p>
                     <p className="text-xs text-muted-foreground">{session.user?.email}</p>
                   </div>
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="text-red-600"
+                    className="w-full text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      signOut({ callbackUrl: '/' })
+                    }}
                   >
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" asChild className="flex-1">
-                    <Link href="/login">Sign In</Link>
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    asChild 
-                    className="flex-1"
-                    style={{
-                      background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                      color: '#000',
-                    }}
+                  <Link 
+                    href="/login" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full"
                   >
-                    <Link href="/register">Sign Up</Link>
-                  </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-primary text-foreground hover:bg-accent"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link 
+                    href="/register" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full"
+                  >
+                    <Button 
+                      className="w-full font-bold"
+                      style={{
+                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        color: '#000',
+                      }}
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
                 </>
               )}
             </div>
