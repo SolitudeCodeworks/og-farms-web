@@ -40,7 +40,7 @@ export function Hero() {
             data-aos="fade-up"
             data-aos-delay="200"
           >
-            High quality medical and recreational cannabis with fast and discreet delivery anywhere in the States.
+            Premium quality cannabis with fast and discreet delivery across South Africa.
           </p>
 
           <div 
@@ -110,9 +110,9 @@ export function Hero() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white">Clean, Legal Weed</h3>
+            <h3 className="text-xl font-bold text-white">Premium Quality</h3>
             <p className="text-gray-400 text-sm text-center leading-relaxed">
-              Sourced from quality producers from our dealers for you
+              Sourced from trusted local growers across South Africa
             </p>
           </div>
 
@@ -134,9 +134,9 @@ export function Hero() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white">2-Day Delivery</h3>
+            <h3 className="text-xl font-bold text-white">Fast Delivery</h3>
             <p className="text-gray-400 text-sm text-center leading-relaxed">
-              Expedited delivery to keep you Canadian fresh all at times
+              Quick and reliable delivery to major cities across SA
             </p>
           </div>
 
@@ -160,7 +160,7 @@ export function Hero() {
             </div>
             <h3 className="text-xl font-bold text-white">Discreet Packaging</h3>
             <p className="text-gray-400 text-sm text-center leading-relaxed">
-              Unmarked packaging to keep your business private and physical
+              Unmarked packaging to keep your order private and secure
             </p>
           </div>
         </div>

@@ -58,7 +58,6 @@ export async function getCartFromDatabase() {
             price: true,
             images: true,
             category: true,
-            stock: true,
           },
         },
       },

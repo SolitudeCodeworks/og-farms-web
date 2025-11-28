@@ -1,22 +1,42 @@
 "use client"
 
 import Link from "next/link"
-import { ShoppingCart, User, Menu, X, Search } from "lucide-react"
+import { ShoppingCart, User, Menu, X, Search, LogOut, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/contexts/cart-context"
 import { CartDropdown } from "@/components/cart/cart-dropdown"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession, signOut } from "next-auth/react"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const { totalItems } = useCart()
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const { totalItems: loggedInCartItems } = useCart()
+  const { data: session, status } = useSession()
+  const [guestCartCount, setGuestCartCount] = useState(0)
+
+  // Load guest cart count
+  useEffect(() => {
+    const updateGuestCartCount = () => {
+      if (!session) {
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+        const count = guestCart.reduce((sum: number, item: any) => sum + item.quantity, 0)
+        setGuestCartCount(count)
+      }
+    }
+
+    updateGuestCartCount()
+    window.addEventListener('cartUpdated', updateGuestCartCount)
+    
+    return () => window.removeEventListener('cartUpdated', updateGuestCartCount)
+  }, [session])
+
+  const totalItems = session ? loggedInCartItems : guestCartCount
 
   const navigation = [
     { name: "Shop", href: "/shop" },
-    { name: "Flower", href: "/shop?category=FLOWER" },
-    { name: "Accessories", href: "/shop?category=ACCESSORIES" },
-    { name: "About", href: "/about" },
+    { name: "Favourites", href: "/favourites" },
   ]
 
   return (
@@ -66,12 +86,113 @@ export function Header() {
               <span className="sr-only">Search</span>
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/account">
-              <User className="h-5 w-5" />
-              <span className="sr-only">Account</span>
-            </Link>
-          </Button>
+          
+          {/* User Menu */}
+          {status === "loading" ? (
+            <Button variant="ghost" size="icon" disabled>
+              <User className="h-5 w-5 animate-pulse" />
+            </Button>
+          ) : session ? (
+            // Show Dashboard button for admins, dropdown for regular users
+            session.user?.role === "ADMIN" ? (
+              <Button 
+                asChild
+                className="font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                  color: '#000',
+                }}
+              >
+                <Link href="/admin">
+                  Admin Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <div 
+                className="relative"
+                onMouseEnter={() => setUserMenuOpen(true)}
+                onMouseLeave={() => setUserMenuOpen(false)}
+              >
+                <Button variant="ghost" size="icon" className="relative">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                      style={{
+                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        color: '#000',
+                      }}
+                    >
+                      {session.user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  </div>
+                </Button>
+                
+                {/* User Dropdown */}
+                {userMenuOpen && (
+                  <div 
+                    className="absolute right-0 top-full pt-2 z-50 min-w-[200px]"
+                  >
+                    <div
+                      className="rounded-xl shadow-2xl border p-2"
+                      style={{
+                        backgroundColor: '#ffffff',
+                        borderColor: 'rgba(74, 222, 128, 0.5)',
+                      }}
+                    >
+                      <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
+                        <p className="text-sm font-bold text-black">{session.user?.name}</p>
+                        <p className="text-xs text-gray-600">{session.user?.email}</p>
+                      </div>
+                      <div className="py-1">
+                        <Link 
+                          href="/account"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <User className="h-4 w-4" />
+                          My Account
+                        </Link>
+                        <Link 
+                          href="/orders"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <Package className="h-4 w-4" />
+                          My Orders
+                        </Link>
+                        <button
+                          onClick={() => signOut({ callbackUrl: '/' })}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login" className="font-semibold">
+                  Sign In
+                </Link>
+              </Button>
+              <Button 
+                size="sm" 
+                asChild
+                className="font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                  color: '#000',
+                }}
+              >
+                <Link href="/register">
+                  Sign Up
+                </Link>
+              </Button>
+            </div>
+          )}
           <div 
             className="relative"
             onMouseEnter={() => setCartOpen(true)}
@@ -129,13 +250,41 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
-            <div className="flex gap-2 pt-4">
-              <Button variant="outline" size="sm" asChild className="flex-1">
-                <Link href="/login">Sign in</Link>
-              </Button>
-              <Button size="sm" asChild className="flex-1">
-                <Link href="/register">Sign up</Link>
-              </Button>
+            {/* Mobile Auth Buttons */}
+            <div className="flex gap-2 pt-4 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
+              {session ? (
+                <>
+                  <div className="flex-1 px-3 py-2 text-sm">
+                    <p className="font-bold text-foreground">{session.user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{session.user?.email}</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="text-red-600"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" asChild className="flex-1">
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    asChild 
+                    className="flex-1"
+                    style={{
+                      background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                      color: '#000',
+                    }}
+                  >
+                    <Link href="/register">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

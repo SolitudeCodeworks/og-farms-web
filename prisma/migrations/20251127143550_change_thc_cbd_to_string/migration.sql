@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Product" ALTER COLUMN "thcContent" SET DATA TYPE TEXT,
+ALTER COLUMN "cbdContent" SET DATA TYPE TEXT;

@@ -16,7 +16,6 @@ export async function getFrequentlyBoughtTogether(productId: string, limit: numb
             compareAtPrice: true,
             images: true,
             category: true,
-            stock: true,
             averageRating: true,
             totalReviews: true,
           },

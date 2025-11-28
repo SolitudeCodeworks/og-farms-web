@@ -7,6 +7,9 @@ import { Suspense } from 'react'
 function OrderSuccessContent() {
   const searchParams = useSearchParams()
   const reference = searchParams.get('ref')
+  const orderNumber = searchParams.get('order')
+  const method = searchParams.get('method') || 'delivery'
+  const storeName = searchParams.get('store')
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -31,7 +34,7 @@ function OrderSuccessContent() {
             Your payment has been processed successfully
           </p>
 
-          {reference && (
+          {orderNumber && (
             <div 
               className="inline-block px-6 py-3 rounded-lg mb-8"
               style={{
@@ -39,8 +42,8 @@ function OrderSuccessContent() {
                 border: '1px solid rgba(74, 222, 128, 0.3)',
               }}
             >
-              <p className="text-sm text-gray-400 mb-1">Reference Number</p>
-              <p className="text-lg font-bold text-primary">{reference}</p>
+              <p className="text-sm text-gray-400 mb-1">Order Number</p>
+              <p className="text-lg font-bold text-primary">{orderNumber}</p>
             </div>
           )}
 
@@ -54,22 +57,40 @@ function OrderSuccessContent() {
             >
               <h3 className="text-white font-bold mb-2">📧 What's Next?</h3>
               <p className="text-gray-400 text-sm">
-                You'll receive an order confirmation email shortly with tracking details.
+                You'll receive an order confirmation email shortly.
               </p>
             </div>
 
-            <div 
-              className="p-4 rounded-lg"
-              style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(74, 222, 128, 0.2)',
-              }}
-            >
-              <h3 className="text-white font-bold mb-2">🚚 Delivery</h3>
-              <p className="text-gray-400 text-sm">
-                Your order will be delivered within 2-3 business days.
-              </p>
-            </div>
+            {method === 'delivery' ? (
+              <div 
+                className="p-4 rounded-lg"
+                style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(74, 222, 128, 0.2)',
+                }}
+              >
+                <h3 className="text-white font-bold mb-2">🚚 Delivery</h3>
+                <p className="text-gray-400 text-sm">
+                  Your order will be delivered within 2-3 business days.
+                </p>
+              </div>
+            ) : (
+              <div 
+                className="p-4 rounded-lg"
+                style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(74, 222, 128, 0.2)',
+                }}
+              >
+                <h3 className="text-white font-bold mb-2">🏪 Store Pickup</h3>
+                <p className="text-gray-400 text-sm">
+                  {storeName ? `Your order is ready for pickup at ${storeName}!` : 'Your order is ready for pickup!'}
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Come collect your order anytime during store hours.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -3,55 +3,37 @@ import { Hero } from "@/components/home/hero"
 import { ProductCard } from "@/components/product/product-card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import { prisma } from "@/lib/prisma"
 
-// This will be replaced with actual database queries
-const featuredProducts = [
-  {
-    id: "1",
-    name: "Granddaddy Purple",
-    slug: "granddaddy-purple",
-    price: 21,
-    compareAtPrice: 25,
-    image: "/products/placeholder.svg",
-    category: "FLOWER",
-    thcContent: 23,
-    stock: 10,
-  },
-  {
-    id: "2",
-    name: "Girl Scout Cookies",
-    slug: "girl-scout-cookies",
-    price: 14,
-    compareAtPrice: 18,
-    image: "/products/placeholder.svg",
-    category: "FLOWER",
-    thcContent: 28,
-    cbdContent: 1,
-    stock: 15,
-  },
-  {
-    id: "3",
-    name: "Sour Diesel",
-    slug: "sour-diesel",
-    price: 11,
-    image: "/products/placeholder.svg",
-    category: "FLOWER",
-    thcContent: 22,
-    stock: 8,
-  },
-  {
-    id: "4",
-    name: "Premium Glass Bong",
-    slug: "premium-glass-bong",
-    price: 89,
-    compareAtPrice: 120,
-    image: "/products/placeholder.svg",
-    category: "BONGS",
-    stock: 5,
-  },
-]
+async function getFeaturedProducts() {
+  try {
+    const products = await prisma.product.findMany({
+      where: { featured: true },
+      take: 4,
+      orderBy: { createdAt: 'desc' }
+    })
 
-export default function Home() {
+    return products.map(product => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      compareAtPrice: product.compareAtPrice ?? undefined,
+      image: product.images[0] || "/products/placeholder.svg",
+      category: product.category,
+      thcContent: product.thcContent ? parseFloat(product.thcContent) : undefined,
+      cbdContent: product.cbdContent ? parseFloat(product.cbdContent) : undefined,
+      stock: 10, // You'll need to calculate this from inventory
+      ageRestricted: product.ageRestricted,
+    }))
+  } catch (error) {
+    console.error("Error fetching featured products:", error)
+    return []
+  }
+}
+
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts()
   return (
     <>
       <Hero />

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AOSProvider } from "@/components/providers/aos-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
 import { CartProvider } from "@/contexts/cart-context";
 
 const geistSans = Geist({
@@ -43,15 +44,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${bebas.variable} ${inter.variable} antialiased`}
       >
-        <CartProvider>
-          <AOSProvider>
-            <Header />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <Footer />
-          </AOSProvider>
-        </CartProvider>
+        <SessionProvider>
+          <CartProvider>
+            <AOSProvider>
+              <Header />
+              <main className="min-h-screen">
+                {children}
+              </main>
+              <Footer />
+            </AOSProvider>
+          </CartProvider>
+        </SessionProvider>
       </body>
     </html>
   );

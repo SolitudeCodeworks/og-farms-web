@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import Image from "next/image"
 import { ShoppingCart } from "lucide-react"
@@ -19,6 +21,7 @@ interface ProductCardProps {
   thcContent?: number
   cbdContent?: number
   stock: number
+  ageRestricted?: boolean
 }
 
 export function ProductCard({
@@ -32,21 +35,62 @@ export function ProductCard({
   thcContent,
   cbdContent,
   stock,
+  ageRestricted = false,
 }: ProductCardProps) {
+  const { data: session } = useSession()
   const discount = compareAtPrice
     ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
     : 0
   
   const { addItem } = useCart()
+  const [adding, setAdding] = useState(false)
 
-  const handleAddToCart = () => {
-    addItem({
-      id,
-      name,
-      price,
-      image,
-      category,
-    })
+  const handleAddToCart = async () => {
+    // Block 18+ products for guests - redirect to login
+    if (!session && ageRestricted) {
+      window.location.href = '/login'
+      return
+    }
+
+    setAdding(true)
+
+    try {
+      if (session) {
+        // Logged-in user: Use context/API
+        addItem({
+          id,
+          name,
+          price,
+          image,
+          category,
+        })
+      } else {
+        // Guest user: Use localStorage
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+        
+        const existingIndex = guestCart.findIndex((item: any) => item.productId === id)
+        
+        if (existingIndex >= 0) {
+          guestCart[existingIndex].quantity += 1
+        } else {
+          guestCart.push({
+            productId: id,
+            productName: name,
+            productImage: image,
+            productPrice: price,
+            quantity: 1,
+            ageRestricted: ageRestricted
+          })
+        }
+        
+        localStorage.setItem('guestCart', JSON.stringify(guestCart))
+        window.dispatchEvent(new Event('cartUpdated'))
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+    } finally {
+      setTimeout(() => setAdding(false), 1000)
+    }
   }
 
   return (
@@ -147,14 +191,14 @@ export function ProductCard({
         <button
           className="w-full py-3 rounded-full font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: stock === 0 ? 'rgba(100, 100, 100, 0.3)' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-            color: stock === 0 ? '#666' : '#000',
-            boxShadow: stock === 0 ? 'none' : '0 4px 15px rgba(74, 222, 128, 0.3)',
+            background: (stock === 0 || adding) ? 'rgba(100, 100, 100, 0.3)' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+            color: (stock === 0 || adding) ? '#666' : '#000',
+            boxShadow: (stock === 0 || adding) ? 'none' : '0 4px 15px rgba(74, 222, 128, 0.3)',
           }}
-          disabled={stock === 0}
+          disabled={stock === 0 || adding}
           onClick={handleAddToCart}
         >
-          {stock === 0 ? "Sold Out" : "Add to Stash"}
+          {stock === 0 ? "Sold Out" : adding ? "Adding..." : "Add to Stash"}
         </button>
       </div>
     </div>

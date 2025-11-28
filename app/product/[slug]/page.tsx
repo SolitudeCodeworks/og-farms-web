@@ -36,11 +36,6 @@ export default async function ProductPage({
               className="object-cover"
               priority
             />
-            {product.stock === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                <span className="text-2xl font-bold text-white">Out of Stock</span>
-              </div>
-            )}
           </div>
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-4">
@@ -142,19 +137,6 @@ export default async function ProductPage({
             </p>
           </div>
 
-          {/* Stock Status */}
-          <div>
-            {product.stock > 0 ? (
-              <p className="text-sm text-primary font-medium">
-                In Stock ({product.stock} available)
-              </p>
-            ) : (
-              <p className="text-sm text-destructive font-medium">
-                Out of Stock
-              </p>
-            )}
-          </div>
-
           {/* Actions */}
           <div className="flex gap-3">
             <AddToCartButton
@@ -163,7 +145,6 @@ export default async function ProductPage({
               price={product.price}
               image={product.images[0] || "/products/placeholder.jpg"}
               category={product.category}
-              stock={product.stock}
               className="flex-1"
             />
             <Button variant="outline" size="lg">

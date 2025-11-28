@@ -14,7 +14,7 @@ interface AddToCartButtonProps {
   price: number
   image: string
   category: string
-  stock: number
+  stock?: number
   className?: string
 }
 
@@ -24,7 +24,7 @@ export function AddToCartButton({
   price,
   image,
   category,
-  stock,
+  stock = 999,
   className,
 }: AddToCartButtonProps) {
   const router = useRouter()

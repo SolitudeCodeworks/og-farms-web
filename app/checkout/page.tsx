@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { useCart } from '@/contexts/cart-context'
 import { formatPrice } from '@/lib/utils'
 import { PaystackButton } from '@/components/checkout/paystack-button'
@@ -8,8 +9,20 @@ import { AddressAutocomplete } from '@/components/checkout/address-autocomplete'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
+interface GuestCartItem {
+  productId: string
+  productName: string
+  productImage: string
+  productPrice: number
+  quantity: number
+  ageRestricted: boolean
+}
+
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart } = useCart()
+  const { data: session } = useSession()
+  const { items: loggedInItems, totalPrice: loggedInTotal, clearCart } = useCart()
+  const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -20,19 +33,140 @@ export default function CheckoutPage() {
   const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery')
+  const [selectedStore, setSelectedStore] = useState('')
+  const [stores, setStores] = useState<any[]>([])
+  const [storeStock, setStoreStock] = useState<Record<string, number>>({})
+  const [checkingStock, setCheckingStock] = useState(false)
 
-  const handleSuccess = (reference: string) => {
-    setIsProcessing(true)
-    // Here you would typically save the order to your database
-    console.log('Payment successful! Reference:', reference)
+  useEffect(() => {
+    if (!session) {
+      const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+      setGuestCart(cart)
+    }
+    loadStores()
+    setLoading(false)
+  }, [session])
+
+  const loadStores = async () => {
+    try {
+      const response = await fetch('/api/stores')
+      if (response.ok) {
+        const data = await response.json()
+        setStores(data.stores || [])
+      }
+    } catch (error) {
+      console.error('Error loading stores:', error)
+    }
+  }
+
+  const checkStoreStock = async (storeId: string) => {
+    setCheckingStock(true)
+    setStoreStock({}) // Clear previous stock data
+    const stockMap: Record<string, number> = {}
     
-    // Clear cart and redirect to success page
-    clearCart()
-    router.push(`/order-success?ref=${reference}`)
+    for (const item of items) {
+      const isGuest = 'productName' in item
+      const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+      
+      try {
+        const response = await fetch(`/api/stores/${storeId}/stock/${productId}`)
+        if (response.ok) {
+          const data = await response.json()
+          stockMap[productId] = data.quantity || 0
+        }
+      } catch (error) {
+        console.error('Error checking stock:', error)
+        stockMap[productId] = 0
+      }
+    }
+    
+    setStoreStock(stockMap)
+    setCheckingStock(false)
+  }
+
+  const handleStoreChange = (storeId: string) => {
+    setSelectedStore(storeId)
+    if (storeId) {
+      checkStoreStock(storeId)
+    }
+  }
+
+  const items = session ? loggedInItems : guestCart
+  const totalPrice = session 
+    ? loggedInTotal 
+    : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
+
+  const handleSuccess = async (reference: string) => {
+    setIsProcessing(true)
+    
+    try {
+      // Create order in database
+      const response = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          items,
+          customerEmail: email,
+          customerName: name,
+          customerPhone: phone,
+          deliveryMethod,
+          storeId: selectedStore,
+          address: deliveryMethod === 'delivery' ? {
+            street,
+            suburb,
+            city,
+            province,
+            postalCode
+          } : null,
+          paymentReference: reference,
+          totalAmount: totalPrice
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create order')
+      }
+
+      const data = await response.json()
+      
+      // Clear cart
+      if (session) {
+        clearCart()
+      } else {
+        localStorage.removeItem('guestCart')
+        window.dispatchEvent(new Event('cartUpdated'))
+      }
+      
+      // Redirect to success page with delivery method and store info
+      let successUrl = `/order-success?ref=${reference}&order=${data.order.orderNumber}&method=${deliveryMethod}`
+      if (deliveryMethod === 'pickup' && selectedStore) {
+        const store = stores.find(s => s.id === selectedStore)
+        if (store) {
+          successUrl += `&store=${encodeURIComponent(store.name)}`
+        }
+      }
+      router.push(successUrl)
+    } catch (error) {
+      console.error('Error creating order:', error)
+      alert('Order creation failed. Please contact support with reference: ' + reference)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const handleClose = () => {
     console.log('Payment popup closed')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <p className="text-gray-400">Loading checkout...</p>
+      </div>
+    )
   }
 
   if (items.length === 0) {
@@ -58,7 +192,37 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black py-16">
+    <>
+      {/* Processing Overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="mb-6 relative">
+              <div className="w-20 h-20 mx-auto rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Processing Your Order...</h2>
+            <p className="text-gray-400">Please wait while we confirm your payment</p>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen relative overflow-hidden bg-black">
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover -z-10"
+        style={{ opacity: 0.4 }}
+      >
+        <source src="/weed_loop.mp4" type="video/mp4" />
+      </video>
+      
+      {/* Gradient Overlay */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+
+      <div className="relative z-10 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-12 text-center">
           Checkout
@@ -76,9 +240,110 @@ export default function CheckoutPage() {
             >
               <h2 className="text-2xl font-bold text-black mb-6">Your Details</h2>
               
+              {/* Delivery Method Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Delivery Method *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('delivery')}
+                    className={`py-3 px-4 rounded-lg font-bold transition-all ${
+                      deliveryMethod === 'delivery' ? 'scale-105' : ''
+                    }`}
+                    style={{
+                      background: deliveryMethod === 'delivery' 
+                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                        : '#f3f4f6',
+                      color: deliveryMethod === 'delivery' ? '#000' : '#6b7280',
+                      boxShadow: deliveryMethod === 'delivery' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                    }}
+                  >
+                    🚚 Delivery
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('pickup')}
+                    className={`py-3 px-4 rounded-lg font-bold transition-all ${
+                      deliveryMethod === 'pickup' ? 'scale-105' : ''
+                    }`}
+                    style={{
+                      background: deliveryMethod === 'pickup' 
+                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                        : '#f3f4f6',
+                      color: deliveryMethod === 'pickup' ? '#000' : '#6b7280',
+                      boxShadow: deliveryMethod === 'pickup' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                    }}
+                  >
+                    🏪 Store Pickup
+                  </button>
+                </div>
+              </div>
+
+              {/* Store Selection for Pickup */}
+              {deliveryMethod === 'pickup' && (
+                <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                    Select Pickup Store *
+                  </label>
+                  <select
+                    value={selectedStore}
+                    onChange={(e) => handleStoreChange(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-white border-2 border-blue-300 text-black font-medium focus:outline-none focus:border-primary"
+                    required
+                  >
+                    <option value="">Choose a store...</option>
+                    {stores.map((store) => (
+                      <option key={store.id} value={store.id}>
+                        {store.name} - {store.city}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {selectedStore && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-bold text-gray-900">Stock Availability:</p>
+                      {checkingStock ? (
+                        // Skeleton loader
+                        items.map((item, index) => {
+                          const isGuest = 'productName' in item
+                          const productName = isGuest ? (item as GuestCartItem).productName : (item as any).name
+                          return (
+                            <div key={index} className="flex items-center justify-between text-sm animate-pulse">
+                              <span className="text-gray-700">{productName}</span>
+                              <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                            </div>
+                          )
+                        })
+                      ) : Object.keys(storeStock).length > 0 ? (
+                        items.map((item) => {
+                          const isGuest = 'productName' in item
+                          const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+                          const productName = isGuest ? (item as GuestCartItem).productName : (item as any).name
+                          const stock = storeStock[productId] || 0
+                          const hasStock = stock >= item.quantity
+                          
+                          return (
+                            <div key={productId} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-700">{productName}</span>
+                              <span className={`font-bold ${
+                                hasStock ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {hasStock ? `✓ ${stock} available` : `✗ Only ${stock} in stock`}
+                              </span>
+                            </div>
+                          )
+                        })
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Full Name *
                   </label>
                   <input
@@ -92,7 +357,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Email Address *
                   </label>
                   <input
@@ -106,7 +371,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Phone Number *
                   </label>
                   <input
@@ -119,20 +384,21 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-black">Delivery Address</h3>
-                  
-                  <AddressAutocomplete
-                    onAddressSelect={(address) => {
-                      setStreet(address.street)
-                      setSuburb(address.suburb)
-                      setCity(address.city)
-                      setProvince(address.province)
-                      setPostalCode(address.postalCode)
-                    }}
-                  />
+                {deliveryMethod === 'delivery' && (
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-black mb-6">Delivery Address</h2>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AddressAutocomplete
+                      onAddressSelect={(address) => {
+                        setStreet(address.street)
+                        setSuburb(address.suburb)
+                        setCity(address.city)
+                        setProvince(address.province)
+                        setPostalCode(address.postalCode)
+                      }}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">
                         Street *
@@ -202,8 +468,9 @@ export default function CheckoutPage() {
                         required
                       />
                     </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -220,32 +487,42 @@ export default function CheckoutPage() {
               <h2 className="text-2xl font-bold text-black mb-6">Order Summary</h2>
 
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-4 p-3 rounded-lg"
-                    style={{
-                      backgroundColor: 'rgba(74, 222, 128, 0.05)',
-                      border: '1px solid rgba(74, 222, 128, 0.3)',
-                    }}
-                  >
-                    <div className="relative w-16 h-16 rounded overflow-hidden flex-shrink-0">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
+                {items.map((item) => {
+                  const isGuest = 'productName' in item
+                  const itemId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+                  const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as any).image
+                  const itemName = isGuest ? (item as GuestCartItem).productName : (item as any).name
+                  const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).price
+                  const itemCategory = isGuest ? '' : (item as any).category
+                  const itemQuantity = item.quantity
+
+                  return (
+                    <div
+                      key={itemId}
+                      className="flex gap-4 p-3 rounded-lg"
+                      style={{
+                        backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                        border: '1px solid rgba(74, 222, 128, 0.3)',
+                      }}
+                    >
+                      <div className="relative w-16 h-16 rounded overflow-hidden shrink-0">
+                        <Image
+                          src={itemImage}
+                          alt={itemName}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-black">{itemName}</h4>
+                        {itemCategory && <p className="text-xs text-gray-600">{itemCategory}</p>}
+                        <p className="text-sm text-primary font-bold mt-1">
+                          {formatPrice(itemPrice)} x {itemQuantity}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-bold text-black">{item.name}</h4>
-                      <p className="text-xs text-gray-600">{item.category}</p>
-                      <p className="text-sm text-primary font-bold mt-1">
-                        {formatPrice(item.price)} x {item.quantity}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <div className="border-t pt-4 mb-6" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
@@ -257,13 +534,13 @@ export default function CheckoutPage() {
                   <span className="text-gray-600">Delivery:</span>
                   <span className="text-black font-bold">FREE</span>
                 </div>
-                <div className="flex justify-between items-center text-xl mt-4">
+                <div className="flex justify-between items-center text-xl mt-4 pt-3 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.3)' }}>
                   <span className="text-black font-bold">Total:</span>
-                  <span className="text-primary font-bold">{formatPrice(totalPrice)}</span>
+                  <span className="font-bold" style={{ color: '#4ade80', fontSize: '1.5rem' }}>{formatPrice(totalPrice)}</span>
                 </div>
               </div>
 
-              {email && name && phone && street && suburb && city && province && postalCode ? (
+              {email && name && phone && (deliveryMethod === 'pickup' || (street && suburb && city && province && postalCode)) ? (
                 <PaystackButton
                   email={email}
                   amount={totalPrice}
@@ -290,6 +567,8 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      </div>
+    </>
   )
 }
