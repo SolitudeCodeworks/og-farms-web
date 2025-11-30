@@ -540,7 +540,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {email && name && phone && (deliveryMethod === 'pickup' || (street && suburb && city && province && postalCode)) ? (
+              {email && name && phone && (deliveryMethod === 'pickup' ? selectedStore : (street && suburb && city && province && postalCode)) ? (
                 <PaystackButton
                   email={email}
                   amount={totalPrice}
@@ -556,7 +556,7 @@ export default function CheckoutPage() {
                     color: '#666',
                   }}
                 >
-                  Fill in all details
+                  {deliveryMethod === 'pickup' && !selectedStore ? 'Select a pickup store' : 'Fill in all details'}
                 </button>
               )}
 

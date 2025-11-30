@@ -35,6 +35,7 @@ export async function GET() {
         shippingAddress: true,
         pickupStore: {
           select: {
+            id: true,
             name: true,
             city: true
           }

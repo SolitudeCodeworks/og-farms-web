@@ -6,7 +6,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useCartStore } from "@/lib/store/cart"
 import { formatPrice } from "@/lib/utils"
 
 interface GuestCartItem {
@@ -18,28 +17,88 @@ interface GuestCartItem {
   ageRestricted: boolean
 }
 
+interface DbCartItem {
+  id: string
+  productId: string
+  quantity: number
+  product: {
+    id: string
+    name: string
+    price: number
+    images: string[]
+    category: string
+  }
+}
+
 export default function CartPage() {
   const { data: session } = useSession()
-  const { items: storeItems, updateQuantity, removeItem, getTotalPrice } = useCartStore()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
+  const [dbCart, setDbCart] = useState<DbCartItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!session) {
-      // Load guest cart from localStorage
-      const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-      setGuestCart(cart)
+    const loadCart = async () => {
+      if (session) {
+        // Fetch cart from database for logged-in users
+        try {
+          const response = await fetch('/api/cart')
+          if (response.ok) {
+            const data = await response.json()
+            setDbCart(data.items || [])
+          }
+        } catch (error) {
+          console.error('Error fetching cart:', error)
+        }
+      } else {
+        // Load guest cart from localStorage
+        const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+        setGuestCart(cart)
+      }
+      setLoading(false)
     }
-    setLoading(false)
+
+    loadCart()
   }, [session])
 
-  const items = session ? storeItems : guestCart
+  const items = session ? dbCart : guestCart
   const total = session 
-    ? getTotalPrice() 
+    ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
   const tax = total * 0.1 // 10% tax
   const shipping = total > 50 ? 0 : 10
   const finalTotal = total + tax + shipping
+
+  const updateDbQuantity = async (productId: string, newQuantity: number) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, quantity: Math.max(1, newQuantity) })
+      })
+      if (response.ok) {
+        setDbCart(prev => prev.map(item =>
+          item.productId === productId ? { ...item, quantity: Math.max(1, newQuantity) } : item
+        ))
+      }
+    } catch (error) {
+      console.error('Error updating cart:', error)
+    }
+  }
+
+  const removeDbItem = async (productId: string) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId })
+      })
+      if (response.ok) {
+        setDbCart(prev => prev.filter(item => item.productId !== productId))
+      }
+    } catch (error) {
+      console.error('Error removing from cart:', error)
+    }
+  }
 
   const updateGuestQuantity = (productId: string, newQuantity: number) => {
     const updatedCart = guestCart.map(item =>
@@ -95,10 +154,10 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => {
             const isGuest = 'productName' in item
-            const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as any).image
-            const itemName = isGuest ? (item as GuestCartItem).productName : (item as any).name
-            const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).price
-            const itemCategory = isGuest ? '' : (item as any).category
+            const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as DbCartItem).product.images[0]
+            const itemName = isGuest ? (item as GuestCartItem).productName : (item as DbCartItem).product.name
+            const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as DbCartItem).product.price
+            const itemCategory = isGuest ? '' : (item as DbCartItem).product.category
 
             return (
               <div
@@ -138,7 +197,7 @@ export default function CartPage() {
                         size="icon"
                         onClick={() =>
                           session 
-                            ? updateQuantity(item.productId, item.quantity - 1)
+                            ? updateDbQuantity(item.productId, item.quantity - 1)
                             : updateGuestQuantity(item.productId, item.quantity - 1)
                         }
                         disabled={item.quantity <= 1}
@@ -153,7 +212,7 @@ export default function CartPage() {
                         size="icon"
                         onClick={() =>
                           session 
-                            ? updateQuantity(item.productId, item.quantity + 1)
+                            ? updateDbQuantity(item.productId, item.quantity + 1)
                             : updateGuestQuantity(item.productId, item.quantity + 1)
                         }
                       >
@@ -166,7 +225,7 @@ export default function CartPage() {
                       size="icon"
                       onClick={() => 
                         session 
-                          ? removeItem(item.productId)
+                          ? removeDbItem(item.productId)
                           : removeGuestItem(item.productId)
                       }
                       className="text-destructive hover:text-destructive"

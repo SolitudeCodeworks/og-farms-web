@@ -20,6 +20,53 @@ export async function PATCH(
 
     const { status } = await request.json()
 
+    // Get the order with items and store info
+    const existingOrder = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        },
+        pickupStore: true
+      }
+    })
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      )
+    }
+
+    // If changing to CANCELLED or REFUNDED, restore stock
+    if ((status === "CANCELLED" || status === "REFUNDED") && 
+        existingOrder.status !== "CANCELLED" && 
+        existingOrder.status !== "REFUNDED") {
+      
+      // Restore stock for each item
+      for (const item of existingOrder.items) {
+        if (existingOrder.pickupStoreId) {
+          // Restore stock to the pickup store
+          await prisma.storeInventory.updateMany({
+            where: {
+              productId: item.productId,
+              storeId: existingOrder.pickupStoreId
+            },
+            data: {
+              quantity: {
+                increment: item.quantity
+              }
+            }
+          })
+        }
+        // Note: For delivery orders, you might want to restore to a default warehouse
+        // or handle differently based on your inventory system
+      }
+    }
+
+    // Update the order status
     const order = await prisma.order.update({
       where: { id },
       data: { status }
