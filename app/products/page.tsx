@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Search, Filter, X, ChevronDown, ShoppingCart } from "lucide-react"
 import { PRODUCT_CATEGORIES, STRAIN_TYPES, PRICE_RANGES, SORT_OPTIONS } from "@/lib/product-constants"
 
@@ -47,6 +48,7 @@ const ProductSkeleton = () => (
 
 export default function ProductsPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -225,37 +227,71 @@ export default function ProductsPage() {
     })
   }, [page, products, searchTerm, selectedCategory, selectedStrain, selectedPriceRange])
 
-  const addToCart = async (product: Product, e: React.MouseEvent) => {
+  const addToCart = async (e: React.MouseEvent, product: Product) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    // Block 18+ products for guests - redirect to login
+    if (!session && product.ageRestricted) {
+      router.push('/login')
+      return
+    }
     
     setAddingToCart(product.id)
     
     try {
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity: 1
+      if (session) {
+        // Logged-in user: Use API to add to database
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productId: product.id,
+            quantity: 1
+          })
         })
-      })
 
-      const data = await response.json()
+        const data = await response.json()
 
-      if (response.ok) {
-        // Trigger cart update event
+        if (response.ok) {
+          // Trigger cart update event
+          window.dispatchEvent(new Event('cartUpdated'))
+          
+          // Show success toast
+          setToast({ message: `${product.name} added to stash!`, type: 'success' })
+          setTimeout(() => setToast(null), 3000)
+        } else {
+          // Show error toast
+          setToast({ message: data.error || 'Failed to add to cart', type: 'error' })
+          setTimeout(() => setToast(null), 4000)
+        }
+      } else {
+        // Guest user: Use localStorage
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+        
+        const existingIndex = guestCart.findIndex((item: any) => item.productId === product.id)
+        
+        if (existingIndex >= 0) {
+          guestCart[existingIndex].quantity += 1
+        } else {
+          guestCart.push({
+            productId: product.id,
+            productName: product.name,
+            productImage: product.images[0] || '/products/placeholder.svg',
+            productPrice: product.price,
+            quantity: 1,
+            ageRestricted: product.ageRestricted
+          })
+        }
+        
+        localStorage.setItem('guestCart', JSON.stringify(guestCart))
         window.dispatchEvent(new Event('cartUpdated'))
         
         // Show success toast
         setToast({ message: `${product.name} added to stash!`, type: 'success' })
         setTimeout(() => setToast(null), 3000)
-      } else {
-        // Show error toast
-        setToast({ message: data.error || 'Failed to add to cart', type: 'error' })
-        setTimeout(() => setToast(null), 4000)
       }
     } catch (error) {
       console.error('Error adding to cart:', error)
@@ -541,7 +577,7 @@ export default function ProductsPage() {
 
                     {/* Add to Stash Button */}
                     <button
-                      onClick={(e) => addToCart(product, e)}
+                      onClick={(e) => addToCart(e, product)}
                       disabled={addingToCart === product.id || product.stockQuantity === 0}
                       className="w-full py-2.5 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{
