@@ -42,9 +42,12 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
+    // Admin users bypass age restrictions
+    const isAdmin = session?.user?.role === 'ADMIN'
+    
     // Check if user is logged in and 18+
-    let isOver18 = false
-    if (session?.user?.email) {
+    let isOver18 = isAdmin
+    if (!isAdmin && session?.user?.email) {
       isOver18 = await checkUserAge(session.user.email)
     }
 

@@ -11,10 +11,13 @@ async function getFeaturedProducts() {
   try {
     const session = await getServerSession(authOptions)
     
-    // Check if user is logged in and 18+
-    let isOver18 = false
+    // Admin users bypass age restrictions
+    const isAdmin = session?.user?.role === 'ADMIN'
     
-    if (session?.user?.email) {
+    // Check if user is logged in and 18+
+    let isOver18 = isAdmin
+    
+    if (!isAdmin && session?.user?.email) {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email },
         select: { 
