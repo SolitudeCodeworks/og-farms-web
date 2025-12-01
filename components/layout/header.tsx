@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ShoppingCart, User, Menu, X, Search, LogOut, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CartDropdown } from "@/components/cart/cart-dropdown"
@@ -8,6 +9,7 @@ import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 
 export function Header() {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -46,7 +48,9 @@ export function Header() {
   const totalItems = cartCount
 
   const navigation = [
+    { name: "Home", href: "/" },
     { name: "Shop", href: "/shop" },
+    { name: "About", href: "/about" },
     { name: "Favourites", href: "/favourites" },
   ]
 
@@ -131,15 +135,26 @@ export function Header() {
 
         {/* Desktop navigation */}
         <div className="hidden lg:flex lg:gap-x-8">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="text-sm font-semibold leading-6 text-foreground hover:text-primary transition-colors"
-            >
-              {item.name}
-            </Link>
-          ))}
+          {navigation.map((item) => {
+            const isActive = pathname === item.href || 
+                           (item.href === '/shop' && pathname?.startsWith('/products'))
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`text-sm font-semibold leading-6 transition-colors relative ${
+                  isActive 
+                    ? 'text-green-400' 
+                    : 'text-foreground hover:text-primary'
+                }`}
+              >
+                {item.name}
+                {isActive && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-green-400 rounded-full" />
+                )}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Right side actions */}
@@ -307,16 +322,24 @@ export function Header() {
           backdropFilter: 'blur(10px)',
         }}>
           <div className="space-y-2 px-4 pb-3 pt-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || 
+                             (item.href === '/shop' && pathname?.startsWith('/products'))
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`block rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors ${
+                    isActive 
+                      ? 'text-green-400 bg-green-400/10' 
+                      : 'text-white hover:bg-zinc-800'
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              )
+            })}
             
             {/* Quick Links for logged-in users */}
             {session && (

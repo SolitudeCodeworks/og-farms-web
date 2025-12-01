@@ -61,6 +61,15 @@ export default function ProductsPage() {
   
   const observerTarget = useRef<HTMLDivElement>(null)
 
+  // Read URL parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const categoryParam = params.get('category')
+    if (categoryParam) {
+      setSelectedCategory(categoryParam)
+    }
+  }, [])
+
   useEffect(() => {
     loadProducts()
   }, [])
