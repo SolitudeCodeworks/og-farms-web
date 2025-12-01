@@ -134,6 +134,10 @@ export default function CheckoutPage() {
     setIsProcessing(true)
     
     try {
+      // Calculate shipping cost based on delivery method
+      const shippingCost = deliveryMethod === 'delivery' ? deliveryFee : 0
+      const finalTotal = totalPrice + shippingCost
+      
       // Create order in database
       const response = await fetch('/api/orders/create', {
         method: 'POST',
@@ -155,7 +159,9 @@ export default function CheckoutPage() {
             postalCode
           } : null,
           paymentReference: reference,
-          totalAmount: totalPrice
+          subtotal: totalPrice,
+          shippingCost: shippingCost,
+          totalAmount: finalTotal
         })
       })
 

@@ -17,6 +17,8 @@ export async function POST(request: Request) {
       storeId,
       address,
       paymentReference,
+      subtotal,
+      shippingCost,
       totalAmount
     } = body
 
@@ -107,9 +109,9 @@ export async function POST(request: Request) {
           fulfillmentType: deliveryMethod.toUpperCase() as 'DELIVERY' | 'PICKUP',
           pickupStoreId: deliveryMethod === 'pickup' ? storeId : null,
           total: totalAmount,
-          subtotal: totalAmount,
+          subtotal: subtotal || totalAmount,
           tax: 0,
-          shippingCost: 0,
+          shippingCost: shippingCost || 0,
           items: {
             create: items.map((item: any) => ({
               productId: item.productId || item.id,
