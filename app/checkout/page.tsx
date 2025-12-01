@@ -173,8 +173,20 @@ export default function CheckoutPage() {
       
       // Clear cart
       if (session) {
+        // Clear database cart via API
+        try {
+          await fetch('/api/cart', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clearAll: true })
+          })
+        } catch (error) {
+          console.error('Error clearing database cart:', error)
+        }
+        // Also clear local cart state
         clearCart()
       } else {
+        // Clear guest cart from localStorage
         localStorage.removeItem('guestCart')
         window.dispatchEvent(new Event('cartUpdated'))
       }

@@ -194,14 +194,8 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const { cartItemId } = await request.json()
-
-    if (!cartItemId) {
-      return NextResponse.json(
-        { error: "Cart item ID is required" },
-        { status: 400 }
-      )
-    }
+    const body = await request.json()
+    const { cartItemId, clearAll } = body
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -212,6 +206,23 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
+      )
+    }
+
+    // If clearAll is true, delete all cart items for the user
+    if (clearAll) {
+      await prisma.cartItem.deleteMany({
+        where: { userId: user.id }
+      })
+
+      return NextResponse.json({ message: "Cart cleared successfully" })
+    }
+
+    // Otherwise, delete a specific item
+    if (!cartItemId) {
+      return NextResponse.json(
+        { error: "Cart item ID is required" },
+        { status: 400 }
       )
     }
 
