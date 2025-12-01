@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Package, Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Package, Plus, Edit, Trash2 } from "lucide-react"
 
 interface Product {
   id: string
@@ -197,13 +197,6 @@ export default function ProductsPage() {
                     {/* Actions */}
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="p-2 hover:bg-zinc-700 text-gray-400 hover:text-white rounded-lg transition-colors"
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
                         <Link
                           href={`/admin/products/${product.id}/edit`}
                           className="p-2 hover:bg-primary/20 text-gray-400 hover:text-primary rounded-lg transition-colors"

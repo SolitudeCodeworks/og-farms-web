@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check stock availability
+    // Check stock availability (optional - allow adding to cart even with 0 stock)
     const inventory = await prisma.storeInventory.findMany({
       where: { productId },
       select: { quantity: true }
@@ -65,12 +65,8 @@ export async function POST(request: Request) {
 
     const totalStock = inventory.reduce((sum, item) => sum + item.quantity, 0)
 
-    if (totalStock < quantity) {
-      return NextResponse.json(
-        { error: `Insufficient stock. Only ${totalStock} available.` },
-        { status: 400 }
-      )
-    }
+    // Note: We allow adding to cart even with 0 stock since pricing is done at checkout
+    // Stock will be validated during order creation
 
     // Check age restriction
     if (product.ageRestricted) {

@@ -76,7 +76,12 @@ export async function GET() {
         discountEndDate: true,
         averageRating: true,
         totalReviews: true,
-        createdAt: true
+        createdAt: true,
+        storeInventory: {
+          select: {
+            quantity: true
+          }
+        }
       },
       orderBy: [
         { featured: 'desc' },
@@ -84,7 +89,14 @@ export async function GET() {
       ]
     })
 
-    return NextResponse.json({ products }, {
+    // Calculate total stock for each product
+    const productsWithStock = products.map(product => ({
+      ...product,
+      stockQuantity: product.storeInventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0),
+      storeInventory: undefined // Remove storeInventory from response
+    }))
+
+    return NextResponse.json({ products: productsWithStock }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
       }

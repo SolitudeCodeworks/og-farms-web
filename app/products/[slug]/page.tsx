@@ -604,6 +604,22 @@ export default function ProductDetailPage() {
               <p className="text-gray-300 leading-relaxed">{product.description}</p>
             </div>
 
+            {/* Product Disclaimer */}
+            <div className="mb-6 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 mt-0.5">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    <span className="font-semibold text-gray-300">Please Note:</span> Product appearance may vary from the image shown. Natural variations in cannabis products mean your item may look slightly different while maintaining the same quality and potency.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Stock Status */}
             {!loadingStock && stockInfo && (
               <div className={`p-3 rounded-lg border mb-6 ${

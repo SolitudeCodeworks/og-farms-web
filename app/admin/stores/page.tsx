@@ -25,6 +25,11 @@ interface Store {
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; storeId: string | null; storeName: string }>({ 
+    isOpen: false, 
+    storeId: null, 
+    storeName: '' 
+  })
 
   useEffect(() => {
     loadStores()
@@ -60,19 +65,32 @@ export default function StoresPage() {
     }
   }
 
-  const deleteStore = async (storeId: string) => {
-    if (!confirm("Are you sure you want to delete this store?")) return
+  const openDeleteModal = (storeId: string, storeName: string) => {
+    setDeleteModal({ isOpen: true, storeId, storeName })
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, storeId: null, storeName: '' })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteModal.storeId) return
 
     try {
-      const response = await fetch(`/api/admin/stores/${storeId}`, {
+      const response = await fetch(`/api/admin/stores/${deleteModal.storeId}`, {
         method: "DELETE"
       })
 
       if (response.ok) {
         loadStores()
+        closeDeleteModal()
+      } else {
+        const data = await response.json()
+        alert(data.error || "Failed to delete store")
       }
     } catch (error) {
       console.error("Error deleting store:", error)
+      alert("Failed to delete store")
     }
   }
 
@@ -168,7 +186,7 @@ export default function StoresPage() {
                     <Edit className="w-5 h-5 text-gray-400 hover:text-white" />
                   </Link>
                   <button
-                    onClick={() => deleteStore(store.id)}
+                    onClick={() => openDeleteModal(store.id, store.name)}
                     className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-5 h-5 text-gray-400 hover:text-red-400" />
@@ -237,6 +255,40 @@ export default function StoresPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-3 bg-red-500/20 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-2">Delete Store</h3>
+                <p className="text-gray-400">
+                  Are you sure you want to delete <span className="font-semibold text-white">{deleteModal.storeName}</span>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
+              >
+                Delete Store
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

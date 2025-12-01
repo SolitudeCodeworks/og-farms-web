@@ -101,8 +101,8 @@ export function ProductCard({
   }
 
   return (
-    <div className="group relative" data-aos="fade-up" data-aos-duration="600">
-      <Link href={`/products/${slug}`}>
+    <div className="group relative flex flex-col h-full" data-aos="fade-up" data-aos-duration="600">
+      <Link href={`/products/${slug}`} className="flex-shrink-0">
         <div 
           className="relative aspect-square overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
           style={{
@@ -177,14 +177,14 @@ export function ProductCard({
       </Link>
 
       {/* Product Info */}
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 flex flex-col flex-grow">
         <Link href={`/products/${slug}`}>
-          <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors line-clamp-2 min-h-[3.5rem]">
             {name}
           </h3>
         </Link>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mt-2">
           <span className="text-2xl font-bold text-primary">
             {formatPrice(price)}
           </span>
@@ -196,7 +196,7 @@ export function ProductCard({
         </div>
 
         <button
-          className="w-full py-3 rounded-full font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 rounded-full font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mt-auto pt-4"
           style={{
             background: (stock === 0 || adding) ? 'rgba(100, 100, 100, 0.3)' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
             color: (stock === 0 || adding) ? '#666' : '#000',

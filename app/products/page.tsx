@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { Search, Filter, X, ChevronDown } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Search, Filter, X, ChevronDown, ShoppingCart } from "lucide-react"
 import { PRODUCT_CATEGORIES, STRAIN_TYPES, PRICE_RANGES, SORT_OPTIONS } from "@/lib/product-constants"
 
 interface Product {
@@ -19,6 +20,7 @@ interface Product {
   images: string[]
   featured: boolean
   ageRestricted: boolean
+  stockQuantity?: number
 }
 
 const ITEMS_PER_PAGE = 12
@@ -44,12 +46,15 @@ const ProductSkeleton = () => (
 )
 
 export default function ProductsPage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [addingToCart, setAddingToCart] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   
   // Filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -219,6 +224,47 @@ export default function ProductsPage() {
       setLoadingMore(false)
     })
   }, [page, products, searchTerm, selectedCategory, selectedStrain, selectedPriceRange])
+
+  const addToCart = async (product: Product, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setAddingToCart(product.id)
+    
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: 1
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Trigger cart update event
+        window.dispatchEvent(new Event('cartUpdated'))
+        
+        // Show success toast
+        setToast({ message: `${product.name} added to stash!`, type: 'success' })
+        setTimeout(() => setToast(null), 3000)
+      } else {
+        // Show error toast
+        setToast({ message: data.error || 'Failed to add to cart', type: 'error' })
+        setTimeout(() => setToast(null), 4000)
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      setToast({ message: 'Something went wrong. Please try again.', type: 'error' })
+      setTimeout(() => setToast(null), 4000)
+    } finally {
+      setAddingToCart(null)
+    }
+  }
 
   const clearFilters = () => {
     setSearchTerm("")
@@ -448,6 +494,11 @@ export default function ProductsPage() {
                         18+
                       </span>
                     )}
+                    {product.stockQuantity === 0 && (
+                      <span className="absolute top-3 left-3 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                        Out of Stock
+                      </span>
+                    )}
                   </div>
 
                   {/* Product Info */}
@@ -478,8 +529,8 @@ export default function ProductsPage() {
                       )}
                     </div>
 
-                    {/* Price */}
-                    <div className="flex items-center justify-between">
+                    {/* Price and Category */}
+                    <div className="flex items-center justify-between mb-3">
                       <span className="text-2xl font-bold text-primary">
                         R{product.price.toFixed(2)}
                       </span>
@@ -487,6 +538,20 @@ export default function ProductsPage() {
                         {product.category.toLowerCase().replace('-', ' ')}
                       </span>
                     </div>
+
+                    {/* Add to Stash Button */}
+                    <button
+                      onClick={(e) => addToCart(product, e)}
+                      disabled={addingToCart === product.id || product.stockQuantity === 0}
+                      className="w-full py-2.5 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        background: (addingToCart === product.id || product.stockQuantity === 0) ? '#666' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        color: '#000',
+                      }}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      {product.stockQuantity === 0 ? 'Out of Stock' : addingToCart === product.id ? 'Adding...' : 'Add to Stash'}
+                    </button>
                   </div>
                 </Link>
               ))}
@@ -509,6 +574,30 @@ export default function ProductsPage() {
           </>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5">
+          <div 
+            className={`px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] ${
+              toast.type === 'success' 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                : 'bg-gradient-to-r from-red-500 to-rose-600'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <p className="text-white font-semibold">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
