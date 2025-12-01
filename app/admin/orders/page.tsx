@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ShoppingCart, Package, Truck, CheckCircle, XCircle, Clock, MapPin, AlertTriangle, Loader2 } from "lucide-react"
+import { ShoppingCart, Package, Truck, CheckCircle, XCircle, Clock, MapPin, AlertTriangle, Loader2, ChevronLeft, ChevronRight, User, Mail, Phone } from "lucide-react"
 
 interface Order {
   id: string
@@ -9,9 +9,19 @@ interface Order {
   status: string
   fulfillmentType: string
   total: number
+  subtotal: number
+  shippingCost: number
+  customerEmail: string
+  customerName: string
+  customerPhone: string
+  deliveryStreet?: string | null
+  deliveryCity?: string | null
+  deliveryState?: string | null
+  deliveryZipCode?: string | null
+  deliveryCountry?: string | null
   createdAt: string
   pickupStoreId?: string
-  user: {
+  user?: {
     name: string
     email: string
   }
@@ -53,6 +63,8 @@ export default function OrdersPage() {
   const [storeFilter, setStoreFilter] = useState<string>("all")
   const [dateFilter, setDateFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
     orderId: string
@@ -66,6 +78,10 @@ export default function OrdersPage() {
     fulfillmentType: string
     orderNumber: string
   }>({ isOpen: false, orderId: '', currentStatus: '', fulfillmentType: '', orderNumber: '' })
+  const [customerInfoModal, setCustomerInfoModal] = useState<{
+    isOpen: boolean
+    order: Order | null
+  }>({ isOpen: false, order: null })
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
@@ -238,6 +254,17 @@ export default function OrdersPage() {
       
       return true
     })
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, fulfillmentFilter, storeFilter, dateFilter, searchQuery])
 
   const pendingCount = orders.filter(o => o.status === "PENDING").length
   const deliveryCount = orders.filter(o => o.fulfillmentType === "DELIVERY").length
@@ -505,6 +532,55 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Pagination Controls - Top */}
+      {filteredOrders.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-400">Items per page:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-primary"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-400">
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+              <span className="px-4 py-2 text-white font-medium">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center">
@@ -516,7 +592,7 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredOrders.map((order) => (
+          {paginatedOrders.map((order) => (
             <div
               key={order.id}
               className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-primary/50 transition-all"
@@ -588,6 +664,15 @@ export default function OrdersPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
+                {/* Customer Information Button */}
+                <button
+                  onClick={() => setCustomerInfoModal({ isOpen: true, order })}
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-lg transition-all border border-zinc-700 flex items-center gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  Customer Information
+                </button>
+
                 {/* Single Manage Order Button */}
                 {order.status === "COMPLETED" ? (
                   <span className="px-4 py-2 bg-green-500/10 text-green-400 text-sm font-medium rounded-lg">
@@ -618,6 +703,204 @@ export default function OrdersPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls - Bottom */}
+      {filteredOrders.length > 0 && totalPages > 1 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            <span className="px-4 py-2 text-white font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              Last
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Information Modal */}
+      {customerInfoModal.isOpen && customerInfoModal.order && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-full bg-primary/20">
+                  <User className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Customer Information</h3>
+                  <p className="text-sm text-gray-400">Order #{customerInfoModal.order.orderNumber}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCustomerInfoModal({ isOpen: false, order: null })}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Customer Details */}
+            <div className="space-y-4">
+              {/* Basic Info */}
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Customer Details
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <User className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-400">Name</p>
+                      <p className="text-white font-medium">{customerInfoModal.order.customerName || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-400">Email</p>
+                      <p className="text-white font-medium break-all">{customerInfoModal.order.customerEmail || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-400">Phone</p>
+                      <p className="text-white font-medium">{customerInfoModal.order.customerPhone || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Details */}
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Order Details
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Order Number:</span>
+                    <span className="text-white font-bold">#{customerInfoModal.order.orderNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Order Date:</span>
+                    <span className="text-white">{new Date(customerInfoModal.order.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(customerInfoModal.order.status)}`}>
+                      {customerInfoModal.order.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Fulfillment Type:</span>
+                    <span className="text-white font-medium">{customerInfoModal.order.fulfillmentType}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-zinc-700">
+                    <span className="text-gray-400">Total Amount:</span>
+                    <span className="text-primary">R{customerInfoModal.order.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery/Pickup Address */}
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {customerInfoModal.order.fulfillmentType === 'PICKUP' ? 'Pickup Location' : 'Delivery Address'}
+                </h4>
+                {customerInfoModal.order.fulfillmentType === 'PICKUP' && customerInfoModal.order.pickupStore ? (
+                  <div className="space-y-1">
+                    <p className="text-white font-medium">{customerInfoModal.order.pickupStore.name}</p>
+                    <p className="text-gray-400">{customerInfoModal.order.pickupStore.city}</p>
+                  </div>
+                ) : customerInfoModal.order.deliveryStreet ? (
+                  <div className="space-y-1">
+                    <p className="text-white font-medium">{customerInfoModal.order.customerName}</p>
+                    <p className="text-gray-400">{customerInfoModal.order.deliveryStreet}</p>
+                    <p className="text-gray-400">
+                      {customerInfoModal.order.deliveryCity}, {customerInfoModal.order.deliveryState} {customerInfoModal.order.deliveryZipCode}
+                    </p>
+                    {customerInfoModal.order.deliveryCountry && (
+                      <p className="text-gray-400">{customerInfoModal.order.deliveryCountry}</p>
+                    )}
+                  </div>
+                ) : customerInfoModal.order.shippingAddress ? (
+                  <div className="space-y-1">
+                    <p className="text-white font-medium">{customerInfoModal.order.shippingAddress.fullName}</p>
+                    <p className="text-gray-400">{customerInfoModal.order.shippingAddress.street}</p>
+                    <p className="text-gray-400">
+                      {customerInfoModal.order.shippingAddress.city}, {customerInfoModal.order.shippingAddress.state} {customerInfoModal.order.shippingAddress.zipCode}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No address information available</p>
+                )}
+              </div>
+
+              {/* Order Items */}
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+                <h4 className="text-sm font-bold text-primary mb-3">Order Items ({customerInfoModal.order.items.length})</h4>
+                <div className="space-y-2">
+                  {customerInfoModal.order.items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-2 bg-zinc-900 rounded-lg">
+                      {item.product.images[0] && (
+                        <img
+                          src={item.product.images[0]}
+                          alt={item.product.name}
+                          className="w-12 h-12 rounded object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-white font-medium text-sm">{item.product.name}</p>
+                        <p className="text-xs text-gray-400">Qty: {item.quantity} × R{item.price.toFixed(2)}</p>
+                      </div>
+                      <p className="text-white font-bold">R{(item.price * item.quantity).toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setCustomerInfoModal({ isOpen: false, order: null })}
+              className="w-full mt-6 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 

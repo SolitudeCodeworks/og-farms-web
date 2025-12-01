@@ -96,6 +96,12 @@ model Order {
   customerEmail   String
   customerName    String
   customerPhone   String
+  // Direct address fields for all orders (guest and logged-in)
+  deliveryStreet  String?
+  deliveryCity    String?
+  deliveryState   String?
+  deliveryZipCode String?
+  deliveryCountry String?        @default("South Africa")
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }

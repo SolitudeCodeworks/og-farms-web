@@ -8,6 +8,7 @@ import { SessionProvider } from "@/components/providers/session-provider";
 import { CartProvider } from "@/contexts/cart-context";
 import { Analytics } from "@vercel/analytics/react";
 import AgeVerification from "@/components/AgeVerification";
+import { AgeVerificationBanner } from "@/components/layout/age-verification-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -131,6 +132,7 @@ export default function RootLayout({
             <AOSProvider>
               <AgeVerification />
               <Header />
+              <AgeVerificationBanner />
               <main className="min-h-screen">
                 {children}
               </main>

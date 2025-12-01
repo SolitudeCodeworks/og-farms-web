@@ -380,15 +380,19 @@ export default function ProductsPage() {
           </div>
         ) : displayedProducts.length === 0 ? (
           <div className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-2xl p-12 text-center">
-            <p className="text-xl text-gray-400">No products found</p>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-6 py-3 bg-primary hover:bg-primary/90 text-black font-bold rounded-full transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-2xl font-semibold text-white">No products found</p>
+              <p className="text-gray-400">Try adjusting your filters to see more results</p>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-2 flex items-center gap-2 px-8 py-3 bg-[#9EFF00] hover:bg-[#8EEF00] text-black font-bold rounded-lg transition-all hover:scale-105 shadow-lg shadow-[#9EFF00]/30"
+                >
+                  <X className="w-5 h-5" />
+                  Clear All Filters
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <>

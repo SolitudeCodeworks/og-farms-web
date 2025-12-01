@@ -18,9 +18,11 @@ export default function AgeVerification() {
   }, [])
 
   const handleConfirm = () => {
-    // Save to localStorage that user is 18+
+    // Save to localStorage that user confirmed they are 18+
+    // This is just to prevent showing the popup again, not for actual age verification
     localStorage.setItem('ageVerified', 'true')
     localStorage.setItem('ageVerifiedDate', new Date().toISOString())
+    
     setShowModal(false)
   }
 

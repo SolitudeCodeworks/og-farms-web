@@ -79,9 +79,8 @@ export default function CartPage() {
   const total = session 
     ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
-  const tax = total * 0.1 // 10% tax
   const shipping = deliveryFee
-  const finalTotal = total + tax + shipping
+  const finalTotal = total + shipping
 
   const updateDbQuantity = async (productId: string, newQuantity: number) => {
     try {
@@ -266,12 +265,6 @@ export default function CartPage() {
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="font-medium text-foreground">
                   {formatPrice(total)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax (10%)</span>
-                <span className="font-medium text-foreground">
-                  {formatPrice(tax)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">

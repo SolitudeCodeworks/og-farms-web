@@ -97,7 +97,26 @@ export async function POST(request: Request) {
     
     // Create order and deduct stock in transaction
     const order = await prisma.$transaction(async (tx) => {
-      // Create order first
+      // Create shipping address if delivery method is delivery
+      let addressId = null
+      if (deliveryMethod === 'delivery' && address && session?.user?.id) {
+        const shippingAddress = await tx.address.create({
+          data: {
+            userId: session.user.id,
+            fullName: customerName,
+            street: address.street,
+            city: address.city,
+            state: address.province,
+            zipCode: address.postalCode,
+            country: 'South Africa',
+            phone: customerPhone,
+            isDefault: false
+          }
+        })
+        addressId = shippingAddress.id
+      }
+
+      // Create order
       const newOrder = await tx.order.create({
         data: {
           userId: session?.user?.id,
@@ -108,6 +127,13 @@ export async function POST(request: Request) {
           status: 'PROCESSING',
           fulfillmentType: deliveryMethod.toUpperCase() as 'DELIVERY' | 'PICKUP',
           pickupStoreId: deliveryMethod === 'pickup' ? storeId : null,
+          addressId: addressId,
+          // Store delivery address directly in order for all orders
+          deliveryStreet: deliveryMethod === 'delivery' && address ? address.street : null,
+          deliveryCity: deliveryMethod === 'delivery' && address ? address.city : null,
+          deliveryState: deliveryMethod === 'delivery' && address ? address.province : null,
+          deliveryZipCode: deliveryMethod === 'delivery' && address ? address.postalCode : null,
+          deliveryCountry: deliveryMethod === 'delivery' ? 'South Africa' : null,
           total: totalAmount,
           subtotal: subtotal || totalAmount,
           tax: 0,
@@ -126,7 +152,8 @@ export async function POST(request: Request) {
               product: true
             }
           },
-          pickupStore: true
+          pickupStore: true,
+          shippingAddress: true
         }
       })
 

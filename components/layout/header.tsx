@@ -55,8 +55,18 @@ export function Header() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8">
         {/* Logo */}
         <div className="flex lg:flex-1">
-          <Link href="/" className="-m-1.5 p-1.5">
-            <span className="text-2xl font-bold text-primary">OG Farms</span>
+          <Link href="/" className="-m-1.5 p-1.5 group">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#9EFF00] blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                <span className="relative text-3xl font-bold tracking-wider bg-gradient-to-r from-[#9EFF00] to-[#7FD000] bg-clip-text text-transparent uppercase">
+                  OG
+                </span>
+              </div>
+              <span className="text-3xl font-bold tracking-wider text-white group-hover:text-[#9EFF00] transition-colors uppercase">
+                FARMS
+              </span>
+            </div>
           </Link>
         </div>
 
