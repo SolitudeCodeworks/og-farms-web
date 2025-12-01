@@ -35,6 +35,7 @@ export default function CartPage() {
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
   const [dbCart, setDbCart] = useState<DbCartItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [deliveryFee, setDeliveryFee] = useState(0)
 
   useEffect(() => {
     const loadCart = async () => {
@@ -54,18 +55,32 @@ export default function CartPage() {
         const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
         setGuestCart(cart)
       }
+      await loadDeliveryFee()
       setLoading(false)
     }
 
     loadCart()
   }, [session])
 
+  const loadDeliveryFee = async () => {
+    try {
+      const response = await fetch('/api/settings/delivery-fee')
+      if (response.ok) {
+        const data = await response.json()
+        setDeliveryFee(data.deliveryFee || 0)
+      }
+    } catch (error) {
+      console.error('Error loading delivery fee:', error)
+      setDeliveryFee(0)
+    }
+  }
+
   const items = session ? dbCart : guestCart
   const total = session 
     ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
   const tax = total * 0.1 // 10% tax
-  const shipping = total > 50 ? 0 : 10
+  const shipping = deliveryFee
   const finalTotal = total + tax + shipping
 
   const updateDbQuantity = async (productId: string, newQuantity: number) => {
@@ -265,11 +280,6 @@ export default function CartPage() {
                   {shipping === 0 ? "FREE" : formatPrice(shipping)}
                 </span>
               </div>
-              {total < 50 && (
-                <p className="text-xs text-muted-foreground">
-                  Add {formatPrice(50 - total)} more for free shipping
-                </p>
-              )}
               <div className="border-t border-border pt-3">
                 <div className="flex justify-between">
                   <span className="text-base font-semibold text-foreground">

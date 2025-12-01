@@ -30,12 +30,17 @@ const CONTACT_SETTINGS = [
   { key: "contact_whatsapp", label: "WhatsApp Number", placeholder: "+27 123 456 7890", description: "WhatsApp business number" },
 ]
 
+const PRICING_SETTINGS = [
+  { key: "delivery_fee", label: "Delivery Fee (R)", placeholder: "0", description: "Delivery fee charged for orders (set to 0 for free delivery)" },
+]
+
 export default function SettingsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -93,14 +98,17 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
-        alert("Settings saved successfully!")
+        setNotification({ type: 'success', message: 'Settings saved successfully!' })
+        setTimeout(() => setNotification(null), 3000)
       } else {
         const data = await response.json()
-        alert(data.error || "Failed to save settings")
+        setNotification({ type: 'error', message: data.error || 'Failed to save settings' })
+        setTimeout(() => setNotification(null), 5000)
       }
     } catch (error) {
       console.error("Error saving settings:", error)
-      alert("Failed to save settings")
+      setNotification({ type: 'error', message: 'Failed to save settings' })
+      setTimeout(() => setNotification(null), 5000)
     } finally {
       setSaving(false)
     }
@@ -116,6 +124,41 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl">
+      {/* Toast Notification */}
+      {notification && (
+        <div 
+          className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-5 fade-in duration-300"
+          style={{
+            animation: 'slideInFromTop 0.3s ease-out'
+          }}
+        >
+          <div 
+            className={`px-6 py-4 rounded-lg shadow-2xl border-2 ${
+              notification.type === 'success' 
+                ? 'bg-green-900/90 border-green-500 text-green-100' 
+                : 'bg-red-900/90 border-red-500 text-red-100'
+            }`}
+            style={{
+              backdropFilter: 'blur(10px)',
+              minWidth: '300px'
+            }}
+          >
+            <div className="flex items-center gap-3">
+              {notification.type === 'success' ? (
+                <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              <p className="font-semibold">{notification.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Site Settings</h1>
         <p className="text-gray-400">
@@ -171,6 +214,38 @@ export default function SettingsPage() {
                 <Input
                   id={key}
                   type={key === "contact_email" ? "email" : "text"}
+                  placeholder={placeholder}
+                  value={settings[key] || ""}
+                  onChange={(e) => handleChange(key, e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
+                />
+                {description && (
+                  <p className="text-sm text-gray-500">{description}</p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Pricing Settings */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white">Pricing Settings</CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure pricing options for your store
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {PRICING_SETTINGS.map(({ key, label, placeholder, description }) => (
+              <div key={key} className="space-y-2">
+                <label htmlFor={key} className="text-sm font-medium text-white">
+                  {label}
+                </label>
+                <Input
+                  id={key}
+                  type="number"
+                  step="0.01"
+                  min="0"
                   placeholder={placeholder}
                   value={settings[key] || ""}
                   onChange={(e) => handleChange(key, e.target.value)}

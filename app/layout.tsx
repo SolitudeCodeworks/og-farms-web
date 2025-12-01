@@ -30,14 +30,19 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "OG Farms - Premium Medical Cannabis Products | 18+ Only",
-  description: "Premium medical cannabis products for adults 18+. High quality THC, CBD, flower, and accessories with fast, discreet delivery. Legal medical cannabis dispensary.",
-  keywords: ["medical cannabis", "medical marijuana", "THC", "CBD", "cannabis flower", "18+", "legal cannabis", "cannabis dispensary", "medical weed", "cannabis accessories", "bongs", "grinders"],
+  title: "OG Farms - Premium Cannabis Products | 18+ Only",
+  description: "Premium cannabis products for adults 18+. High quality THC, CBD, flower, and accessories with fast, discreet delivery. South Africa's trusted cannabis store.",
+  keywords: ["cannabis", "marijuana", "THC", "CBD", "cannabis flower", "18+", "legal cannabis", "cannabis dispensary", "weed", "cannabis accessories", "bongs", "grinders", "South Africa"],
+  icons: {
+    icon: '/images/weed-icon.png',
+    apple: '/images/weed-icon.png',
+  },
   openGraph: {
-    title: "OG Farms - Premium Medical Cannabis Products | 18+ Only",
-    description: "Premium medical cannabis products for adults 18+. High quality THC, CBD, flower, and accessories with fast, discreet delivery.",
+    title: "OG Farms - Premium Cannabis Products | 18+ Only",
+    description: "Premium cannabis products for adults 18+. High quality THC, CBD, flower, and accessories with fast, discreet delivery.",
     type: "website",
     locale: "en_ZA",
+    images: ['/images/weed-icon.png'],
   },
   robots: {
     index: true,
@@ -55,9 +60,9 @@ export default function RootLayout({
 }>) {
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "MedicalBusiness",
+    "@type": "Store",
     "name": "OG Farms",
-    "description": "Premium medical cannabis products for adults 18+. Legal medical cannabis dispensary.",
+    "description": "Premium cannabis products for adults 18+. South Africa's trusted cannabis store.",
     "url": "https://ogfarms.co.za",
     "logo": "https://ogfarms.co.za/images/weed-icon.png",
     "image": "https://ogfarms.co.za/images/weed-icon.png",
@@ -80,13 +85,20 @@ export default function RootLayout({
     },
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
-      "name": "Medical Cannabis Products",
+      "name": "Cannabis Products",
       "itemListElement": [
         {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Product",
-            "name": "Medical Cannabis Flower"
+            "name": "Cannabis Flower"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product",
+            "name": "THC & CBD Products"
           }
         },
         {

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Hero } from "@/components/home/hero"
 import { ProductCard } from "@/components/product/product-card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Leaf, Cookie, Droplet, Flame } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 
 async function getFeaturedProducts() {
@@ -10,22 +10,33 @@ async function getFeaturedProducts() {
     const products = await prisma.product.findMany({
       where: { featured: true },
       take: 4,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        storeInventory: {
+          select: {
+            quantity: true,
+          }
+        }
+      }
     })
 
-    return products.map(product => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      price: product.price,
-      compareAtPrice: product.compareAtPrice ?? undefined,
-      image: product.images[0] || "/products/placeholder.svg",
-      category: product.category,
-      thcContent: product.thcContent ? parseFloat(product.thcContent) : undefined,
-      cbdContent: product.cbdContent ? parseFloat(product.cbdContent) : undefined,
-      stock: 10, // You'll need to calculate this from inventory
-      ageRestricted: product.ageRestricted,
-    }))
+    return products.map(product => {
+      const totalStock = product.storeInventory.reduce((sum: number, inv: { quantity: number }) => sum + inv.quantity, 0)
+      
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        compareAtPrice: product.compareAtPrice ?? undefined,
+        image: product.images[0] || "/products/placeholder.svg",
+        category: product.category,
+        thcContent: product.thcContent ? parseFloat(product.thcContent) : undefined,
+        cbdContent: product.cbdContent ? parseFloat(product.cbdContent) : undefined,
+        stock: totalStock,
+        ageRestricted: product.ageRestricted,
+      }
+    })
   } catch (error) {
     console.error("Error fetching featured products:", error)
     return []
@@ -99,7 +110,14 @@ export default async function Home() {
                 data-aos-delay="100"
               >
                 <div className="relative z-10">
-                  <div className="text-5xl mb-4">🌿</div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all group-hover:scale-110" 
+                       style={{ 
+                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                         borderColor: 'rgba(74, 222, 128, 0.4)',
+                         border: '2px solid'
+                       }}>
+                    <Leaf className="w-8 h-8 text-primary" />
+                  </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Flower</h3>
                   <p className="text-gray-400">Premium buds & strains</p>
                 </div>
@@ -120,7 +138,14 @@ export default async function Home() {
                 data-aos-delay="200"
               >
                 <div className="relative z-10">
-                  <div className="text-5xl mb-4">🍪</div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all group-hover:scale-110" 
+                       style={{ 
+                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                         borderColor: 'rgba(74, 222, 128, 0.4)',
+                         border: '2px solid'
+                       }}>
+                    <Cookie className="w-8 h-8 text-primary" />
+                  </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Edibles</h3>
                   <p className="text-gray-400">Tasty treats & snacks</p>
                 </div>
@@ -141,7 +166,14 @@ export default async function Home() {
                 data-aos-delay="300"
               >
                 <div className="relative z-10">
-                  <div className="text-5xl mb-4">💎</div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all group-hover:scale-110" 
+                       style={{ 
+                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                         borderColor: 'rgba(74, 222, 128, 0.4)',
+                         border: '2px solid'
+                       }}>
+                    <Droplet className="w-8 h-8 text-primary" />
+                  </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Concentrates</h3>
                   <p className="text-gray-400">Wax, shatter & more</p>
                 </div>
@@ -162,7 +194,14 @@ export default async function Home() {
                 data-aos-delay="400"
               >
                 <div className="relative z-10">
-                  <div className="text-5xl mb-4">🔥</div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all group-hover:scale-110" 
+                       style={{ 
+                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                         borderColor: 'rgba(74, 222, 128, 0.4)',
+                         border: '2px solid'
+                       }}>
+                    <Flame className="w-8 h-8 text-primary" />
+                  </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Accessories</h3>
                   <p className="text-gray-400">Bongs, papers & tools</p>
                 </div>

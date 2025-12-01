@@ -117,7 +117,7 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="border-t border-zinc-800 bg-black">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {/* Brand */}
@@ -125,11 +125,11 @@ export function Footer() {
             <Link href="/" className="text-2xl font-bold text-primary">
               OG Farms
             </Link>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-4 text-sm text-gray-300">
               Premium cannabis products delivered to your door. Quality you can trust.
             </p>
             {contactPhone && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-4 flex items-center gap-2 text-sm text-gray-300">
                 <Phone className="h-4 w-4" />
                 <a href={`tel:${contactPhone}`} className="hover:text-primary transition-colors">
                   {contactPhone}
@@ -144,7 +144,7 @@ export function Footer() {
                     href={link.value}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    className="text-gray-400 hover:text-primary transition-colors"
                     title={link.platform}
                   >
                     {link.icon}
@@ -157,13 +157,13 @@ export function Footer() {
 
           {/* Shop Links */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Shop</h3>
+            <h3 className="text-sm font-semibold text-white">Shop</h3>
             <ul className="mt-4 space-y-3">
               {footerLinks.shop.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    className="text-sm text-gray-300 hover:text-primary transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -174,13 +174,13 @@ export function Footer() {
 
           {/* Account Links */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Account</h3>
+            <h3 className="text-sm font-semibold text-white">Account</h3>
             <ul className="mt-4 space-y-3">
               {footerLinks.account.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    className="text-sm text-gray-300 hover:text-primary transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -190,11 +190,11 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-border pt-8">
-          <p className="text-center text-sm text-muted-foreground">
+        <div className="mt-12 border-t border-zinc-800 pt-8">
+          <p className="text-center text-sm text-gray-400">
             &copy; {new Date().getFullYear()} OG Farms. All rights reserved.
           </p>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
+          <p className="mt-2 text-center text-xs text-gray-500">
             Must be 18+ to purchase. Please consume responsibly.
           </p>
         </div>

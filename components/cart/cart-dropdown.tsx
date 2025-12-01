@@ -33,9 +33,11 @@ export function CartDropdown() {
   const { data: session } = useSession()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
   const [dbCart, setDbCart] = useState<DbCartItem[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const updateCart = async () => {
+      setLoading(true)
       if (session) {
         // Fetch from database for logged-in users
         try {
@@ -52,6 +54,7 @@ export function CartDropdown() {
         const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
         setGuestCart(cart)
       }
+      setLoading(false)
     }
 
     updateCart()
@@ -87,6 +90,31 @@ export function CartDropdown() {
   const totalPrice = session 
     ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
+
+  if (loading) {
+    return (
+      <div className="p-6 min-w-[320px] space-y-4 animate-pulse">
+        <div className="flex gap-3">
+          <div className="w-16 h-16 bg-zinc-700 rounded"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-zinc-700 rounded w-3/4"></div>
+            <div className="h-3 bg-zinc-700 rounded w-1/2"></div>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <div className="w-16 h-16 bg-zinc-700 rounded"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-zinc-700 rounded w-3/4"></div>
+            <div className="h-3 bg-zinc-700 rounded w-1/2"></div>
+          </div>
+        </div>
+        <div className="border-t border-zinc-700 pt-4 space-y-2">
+          <div className="h-4 bg-zinc-700 rounded w-1/2"></div>
+          <div className="h-10 bg-zinc-700 rounded w-full"></div>
+        </div>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (

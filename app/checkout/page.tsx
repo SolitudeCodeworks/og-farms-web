@@ -8,6 +8,7 @@ import { PaystackButton } from '@/components/checkout/paystack-button'
 import { AddressAutocomplete } from '@/components/checkout/address-autocomplete'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { Truck, Store } from 'lucide-react'
 
 interface GuestCartItem {
   productId: string
@@ -22,6 +23,7 @@ export default function CheckoutPage() {
   const { data: session } = useSession()
   const { items: loggedInItems, totalPrice: loggedInTotal, clearCart } = useCart()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
+  const [dbCart, setDbCart] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -38,15 +40,46 @@ export default function CheckoutPage() {
   const [stores, setStores] = useState<any[]>([])
   const [storeStock, setStoreStock] = useState<Record<string, number>>({})
   const [checkingStock, setCheckingStock] = useState(false)
+  const [deliveryFee, setDeliveryFee] = useState(0)
 
   useEffect(() => {
-    if (!session) {
-      const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-      setGuestCart(cart)
+    const loadCart = async () => {
+      if (session) {
+        // Fetch cart from database for logged-in users
+        try {
+          const response = await fetch('/api/cart')
+          if (response.ok) {
+            const data = await response.json()
+            setDbCart(data.items || [])
+          }
+        } catch (error) {
+          console.error('Error fetching cart:', error)
+          setDbCart([])
+        }
+      } else {
+        const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
+        setGuestCart(cart)
+      }
+      await loadStores()
+      await loadDeliveryFee()
+      setLoading(false)
     }
-    loadStores()
-    setLoading(false)
+    
+    loadCart()
   }, [session])
+
+  const loadDeliveryFee = async () => {
+    try {
+      const response = await fetch('/api/settings/delivery-fee')
+      if (response.ok) {
+        const data = await response.json()
+        setDeliveryFee(data.deliveryFee || 0)
+      }
+    } catch (error) {
+      console.error('Error loading delivery fee:', error)
+      setDeliveryFee(0)
+    }
+  }
 
   const loadStores = async () => {
     try {
@@ -92,9 +125,9 @@ export default function CheckoutPage() {
     }
   }
 
-  const items = session ? loggedInItems : guestCart
+  const items = session ? dbCart : guestCart
   const totalPrice = session 
-    ? loggedInTotal 
+    ? dbCart.reduce((sum: number, item: any) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
 
   const handleSuccess = async (reference: string) => {
@@ -163,8 +196,64 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <p className="text-gray-400">Loading checkout...</p>
+      <div className="min-h-screen relative overflow-hidden bg-black">
+        {/* Video Background */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          style={{ opacity: 0.7 }}
+        >
+          <source src="/weed_loop.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60" />
+
+        <div className="relative z-10 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-12 text-center">
+              Checkout
+            </h1>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Skeleton for Customer Details */}
+              <div>
+                <div className="p-8 rounded-2xl border backdrop-blur-sm animate-pulse" style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  borderColor: 'rgba(74, 222, 128, 0.3)',
+                }}>
+                  <div className="h-8 bg-zinc-700 rounded w-1/3 mb-6"></div>
+                  <div className="space-y-4">
+                    <div className="h-12 bg-zinc-700 rounded"></div>
+                    <div className="h-12 bg-zinc-700 rounded"></div>
+                    <div className="h-12 bg-zinc-700 rounded"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skeleton for Order Summary */}
+              <div>
+                <div className="p-8 rounded-2xl border backdrop-blur-sm animate-pulse" style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  borderColor: 'rgba(74, 222, 128, 0.3)',
+                }}>
+                  <div className="h-8 bg-zinc-700 rounded w-1/2 mb-6"></div>
+                  <div className="space-y-4">
+                    <div className="h-20 bg-zinc-700 rounded"></div>
+                    <div className="h-20 bg-zinc-700 rounded"></div>
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-zinc-700">
+                    <div className="h-6 bg-zinc-700 rounded w-3/4 mb-2"></div>
+                    <div className="h-10 bg-zinc-700 rounded w-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -213,14 +302,14 @@ export default function CheckoutPage() {
         loop
         muted
         playsInline
-        className="fixed inset-0 w-full h-full object-cover -z-10"
-        style={{ opacity: 0.4 }}
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        style={{ opacity: 0.7 }}
       >
         <source src="/weed_loop.mp4" type="video/mp4" />
       </video>
       
       {/* Gradient Overlay */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60" />
 
       <div className="relative z-10 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -232,24 +321,24 @@ export default function CheckoutPage() {
           {/* Customer Details */}
           <div>
             <div
-              className="p-8 rounded-2xl border"
+              className="p-8 rounded-2xl border backdrop-blur-sm"
               style={{
-                backgroundColor: '#ffffff',
-                borderColor: 'rgba(74, 222, 128, 0.5)',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                borderColor: 'rgba(74, 222, 128, 0.3)',
               }}
             >
-              <h2 className="text-2xl font-bold text-black mb-6">Your Details</h2>
+              <h2 className="text-2xl font-bold text-white mb-6">Your Details</h2>
               
               {/* Delivery Method Selection */}
               <div className="mb-6">
-                <label className="block text-sm font-bold text-gray-900 mb-3">
+                <label className="block text-sm font-bold text-white mb-3">
                   Delivery Method *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setDeliveryMethod('delivery')}
-                    className={`py-3 px-4 rounded-lg font-bold transition-all ${
+                    className={`py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
                       deliveryMethod === 'delivery' ? 'scale-105' : ''
                     }`}
                     style={{
@@ -260,12 +349,13 @@ export default function CheckoutPage() {
                       boxShadow: deliveryMethod === 'delivery' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
                     }}
                   >
-                    🚚 Delivery
+                    <Truck className="h-5 w-5" />
+                    Delivery
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeliveryMethod('pickup')}
-                    className={`py-3 px-4 rounded-lg font-bold transition-all ${
+                    className={`py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
                       deliveryMethod === 'pickup' ? 'scale-105' : ''
                     }`}
                     style={{
@@ -276,21 +366,28 @@ export default function CheckoutPage() {
                       boxShadow: deliveryMethod === 'pickup' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
                     }}
                   >
-                    🏪 Store Pickup
+                    <Store className="h-5 w-5" />
+                    Store Pickup
                   </button>
                 </div>
               </div>
 
               {/* Store Selection for Pickup */}
               {deliveryMethod === 'pickup' && (
-                <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                <div className="mb-6 p-5 rounded-xl border-2" style={{
+                  backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                  borderColor: 'rgba(74, 222, 128, 0.4)',
+                }}>
+                  <label className="block text-sm font-bold text-white mb-3">
                     Select Pickup Store *
                   </label>
                   <select
                     value={selectedStore}
                     onChange={(e) => handleStoreChange(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white border-2 border-blue-300 text-black font-medium focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-black font-medium focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    style={{
+                      border: '2px solid rgba(74, 222, 128, 0.5)',
+                    }}
                     required
                   >
                     <option value="">Choose a store...</option>
@@ -303,7 +400,7 @@ export default function CheckoutPage() {
                   
                   {selectedStore && (
                     <div className="mt-3 space-y-2">
-                      <p className="text-sm font-bold text-gray-900">Stock Availability:</p>
+                      <p className="text-sm font-bold text-white">Stock Availability:</p>
                       {checkingStock ? (
                         // Skeleton loader
                         items.map((item, index) => {
@@ -311,7 +408,7 @@ export default function CheckoutPage() {
                           const productName = isGuest ? (item as GuestCartItem).productName : (item as any).name
                           return (
                             <div key={index} className="flex items-center justify-between text-sm animate-pulse">
-                              <span className="text-gray-700">{productName}</span>
+                              <span className="text-white">{productName}</span>
                               <div className="h-4 w-24 bg-gray-300 rounded"></div>
                             </div>
                           )
@@ -326,7 +423,7 @@ export default function CheckoutPage() {
                           
                           return (
                             <div key={productId} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-700">{productName}</span>
+                              <span className="text-white">{productName}</span>
                               <span className={`font-bold ${
                                 hasStock ? 'text-green-600' : 'text-red-600'
                               }`}>
@@ -343,7 +440,7 @@ export default function CheckoutPage() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                  <label className="block text-sm font-bold text-white mb-2">
                     Full Name *
                   </label>
                   <input
@@ -357,7 +454,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                  <label className="block text-sm font-bold text-white mb-2">
                     Email Address *
                   </label>
                   <input
@@ -371,7 +468,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                  <label className="block text-sm font-bold text-white mb-2">
                     Phone Number *
                   </label>
                   <input
@@ -386,7 +483,7 @@ export default function CheckoutPage() {
 
                 {deliveryMethod === 'delivery' && (
                   <div className="space-y-4">
-                    <h2 className="text-2xl font-bold text-black mb-6">Delivery Address</h2>
+                    <h2 className="text-2xl font-bold text-white mb-6">Delivery Address</h2>
 
                     <AddressAutocomplete
                       onAddressSelect={(address) => {
@@ -400,7 +497,7 @@ export default function CheckoutPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-white mb-2">
                         Street *
                       </label>
                       <input
@@ -414,7 +511,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-white mb-2">
                         Suburb *
                       </label>
                       <input
@@ -428,7 +525,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-white mb-2">
                         City *
                       </label>
                       <input
@@ -442,7 +539,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-white mb-2">
                         Province *
                       </label>
                       <input
@@ -456,7 +553,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-white mb-2">
                         Postal Code *
                       </label>
                       <input
@@ -478,22 +575,22 @@ export default function CheckoutPage() {
           {/* Order Summary */}
           <div>
             <div
-              className="p-8 rounded-2xl border sticky top-24"
+              className="p-8 rounded-2xl border backdrop-blur-sm sticky top-24"
               style={{
-                backgroundColor: '#ffffff',
-                borderColor: 'rgba(74, 222, 128, 0.5)',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                borderColor: 'rgba(74, 222, 128, 0.3)',
               }}
             >
-              <h2 className="text-2xl font-bold text-black mb-6">Order Summary</h2>
+              <h2 className="text-2xl font-bold text-white mb-6">Order Summary</h2>
 
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
                 {items.map((item) => {
                   const isGuest = 'productName' in item
-                  const itemId = isGuest ? (item as GuestCartItem).productId : (item as any).id
-                  const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as any).image
-                  const itemName = isGuest ? (item as GuestCartItem).productName : (item as any).name
-                  const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).price
-                  const itemCategory = isGuest ? '' : (item as any).category
+                  const itemId = isGuest ? (item as GuestCartItem).productId : (item as any).productId
+                  const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as any).product?.images?.[0] || '/products/placeholder.svg'
+                  const itemName = isGuest ? (item as GuestCartItem).productName : (item as any).product?.name
+                  const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).product?.price
+                  const itemCategory = isGuest ? '' : (item as any).product?.category
                   const itemQuantity = item.quantity
 
                   return (
@@ -514,8 +611,8 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div className="flex-1">
-                        <h4 className="text-sm font-bold text-black">{itemName}</h4>
-                        {itemCategory && <p className="text-xs text-gray-600">{itemCategory}</p>}
+                        <h4 className="text-sm font-bold text-white">{itemName}</h4>
+                        {itemCategory && <p className="text-xs text-gray-400">{itemCategory}</p>}
                         <p className="text-sm text-primary font-bold mt-1">
                           {formatPrice(itemPrice)} x {itemQuantity}
                         </p>
@@ -527,38 +624,66 @@ export default function CheckoutPage() {
 
               <div className="border-t pt-4 mb-6" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="text-black font-bold">{formatPrice(totalPrice)}</span>
+                  <span className="text-gray-400">Subtotal:</span>
+                  <span className="text-white font-bold">{formatPrice(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Delivery:</span>
-                  <span className="text-black font-bold">FREE</span>
+                  <span className="text-gray-400">Delivery:</span>
+                  <span className="text-white font-bold">
+                    {deliveryMethod === 'pickup' ? 'FREE' : (deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee))}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-xl mt-4 pt-3 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.3)' }}>
-                  <span className="text-black font-bold">Total:</span>
-                  <span className="font-bold" style={{ color: '#4ade80', fontSize: '1.5rem' }}>{formatPrice(totalPrice)}</span>
+                  <span className="text-white font-bold">Total:</span>
+                  <span className="font-bold" style={{ color: '#4ade80', fontSize: '1.5rem' }}>
+                    {formatPrice(totalPrice + (deliveryMethod === 'delivery' ? deliveryFee : 0))}
+                  </span>
                 </div>
               </div>
 
-              {email && name && phone && (deliveryMethod === 'pickup' ? selectedStore : (street && suburb && city && province && postalCode)) ? (
-                <PaystackButton
-                  email={email}
-                  amount={totalPrice}
-                  onSuccess={handleSuccess}
-                  onClose={handleClose}
-                />
-              ) : (
-                <button
-                  disabled
-                  className="w-full py-4 rounded-full font-bold uppercase tracking-wide text-lg opacity-50 cursor-not-allowed"
-                  style={{
-                    background: 'rgba(100, 100, 100, 0.3)',
-                    color: '#666',
-                  }}
-                >
-                  {deliveryMethod === 'pickup' && !selectedStore ? 'Select a pickup store' : 'Fill in all details'}
-                </button>
-              )}
+              {(() => {
+                // Check if all required fields are filled
+                const hasRequiredFields = email && name && phone && (deliveryMethod === 'pickup' ? selectedStore : (street && suburb && city && province && postalCode))
+                
+                // Check if all items have sufficient stock for pickup
+                const hasInsufficientStock = deliveryMethod === 'pickup' && selectedStore && Object.keys(storeStock).length > 0 && items.some((item) => {
+                  const isGuest = 'productName' in item
+                  const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+                  const stock = storeStock[productId] || 0
+                  return stock < item.quantity
+                })
+
+                if (hasRequiredFields && !hasInsufficientStock) {
+                  return (
+                    <PaystackButton
+                      email={email}
+                      amount={totalPrice}
+                      onSuccess={handleSuccess}
+                      onClose={handleClose}
+                    />
+                  )
+                } else {
+                  let buttonText = 'Fill in all details'
+                  if (deliveryMethod === 'pickup' && !selectedStore) {
+                    buttonText = 'Select a pickup store'
+                  } else if (hasInsufficientStock) {
+                    buttonText = 'Insufficient stock at selected store'
+                  }
+
+                  return (
+                    <button
+                      disabled
+                      className="w-full py-4 rounded-full font-bold uppercase tracking-wide text-lg opacity-50 cursor-not-allowed"
+                      style={{
+                        background: 'rgba(100, 100, 100, 0.3)',
+                        color: '#666',
+                      }}
+                    >
+                      {buttonText}
+                    </button>
+                  )
+                }
+              })()}
 
               <p className="text-xs text-gray-500 text-center mt-4">
                 Secure payment powered by Paystack

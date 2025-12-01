@@ -51,7 +51,7 @@ export function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-800" style={{ backgroundColor: 'rgba(0, 0, 0, 0.98)' }}>
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8">
         {/* Logo */}
         <div className="flex lg:flex-1">
@@ -292,13 +292,16 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden">
+        <div className="lg:hidden" style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.98)',
+          backdropFilter: 'blur(10px)',
+        }}>
           <div className="space-y-2 px-4 pb-3 pt-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-foreground hover:bg-accent"
+                className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.name}
@@ -310,14 +313,14 @@ export function Header() {
               <>
                 <Link
                   href="/account"
-                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-foreground hover:bg-accent"
+                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   My Account
                 </Link>
                 <Link
                   href="/orders"
-                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-foreground hover:bg-accent"
+                  className="block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   My Orders
@@ -338,9 +341,9 @@ export function Header() {
             <div className="flex flex-col gap-3 pt-4 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.2)' }}>
               {session ? (
                 <>
-                  <div className="px-3 py-2 text-sm bg-accent rounded-lg">
-                    <p className="font-bold text-foreground">{session.user?.name}</p>
-                    <p className="text-xs text-muted-foreground">{session.user?.email}</p>
+                  <div className="px-3 py-2 text-sm rounded-lg" style={{ backgroundColor: 'rgba(74, 222, 128, 0.1)' }}>
+                    <p className="font-bold text-white">{session.user?.name}</p>
+                    <p className="text-xs text-gray-400">{session.user?.email}</p>
                   </div>
                   <Button 
                     variant="outline" 
@@ -362,7 +365,7 @@ export function Header() {
                   >
                     <Button 
                       variant="outline" 
-                      className="w-full border-primary text-foreground hover:bg-accent"
+                      className="w-full border-zinc-700 text-white hover:bg-zinc-800"
                     >
                       Sign In
                     </Button>
