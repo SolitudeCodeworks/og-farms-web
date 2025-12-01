@@ -114,7 +114,7 @@ export async function POST(request: Request) {
             create: items.map((item: any) => ({
               productId: item.productId || item.id,
               quantity: item.quantity,
-              price: item.productPrice || item.price
+              price: item.productPrice || item.product?.price || item.price
             }))
           }
         },
