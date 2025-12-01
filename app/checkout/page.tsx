@@ -100,7 +100,7 @@ export default function CheckoutPage() {
     
     for (const item of items) {
       const isGuest = 'productName' in item
-      const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+      const productId = isGuest ? (item as GuestCartItem).productId : (item as any).productId
       
       try {
         const response = await fetch(`/api/stores/${storeId}/stock/${productId}`)
