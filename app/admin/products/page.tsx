@@ -34,7 +34,7 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch("/api/products")
+      const response = await fetch("/api/admin/products")
       if (response.ok) {
         const data = await response.json()
         setProducts(data.products)

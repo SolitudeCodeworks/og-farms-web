@@ -9,9 +9,10 @@ interface Product {
   id: string
   name: string
   slug: string
-  description: string
+  description?: string
   price: number
   category: string
+  subcategory?: string | null
   thcContent: string | null
   cbdContent: string | null
   strain: string | null
@@ -107,7 +108,9 @@ export default function ProductsPage() {
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.strain && product.strain.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.subcategory && product.subcategory.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
 
@@ -176,7 +179,9 @@ export default function ProductsPage() {
       if (searchTerm) {
         filtered = filtered.filter(product =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchTerm.toLowerCase())
+          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (product.strain && product.strain.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (product.subcategory && product.subcategory.toLowerCase().includes(searchTerm.toLowerCase()))
         )
       }
       if (selectedCategory) {

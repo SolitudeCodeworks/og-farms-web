@@ -113,10 +113,19 @@ export async function DELETE(
 
     const { id } = await params
     
-    // Get product to access image URLs before deleting
+    // Get product to access image URLs and check for orders
     const product = await prisma.product.findUnique({
       where: { id },
-      select: { images: true }
+      select: { 
+        images: true,
+        _count: {
+          select: {
+            orderItems: true,
+            cartItems: true,
+            wishlistItems: true
+          }
+        }
+      }
     })
 
     if (!product) {
@@ -126,7 +135,28 @@ export async function DELETE(
       )
     }
 
-    // Delete product from database first
+    // Check if product has any orders
+    if (product._count.orderItems > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete product. It has ${product._count.orderItems} order(s) associated with it. Consider marking it as inactive instead.` },
+        { status: 400 }
+      )
+    }
+
+    // Delete related cart items and wishlist items first
+    if (product._count.cartItems > 0) {
+      await prisma.cartItem.deleteMany({
+        where: { productId: id }
+      })
+    }
+
+    if (product._count.wishlistItems > 0) {
+      await prisma.wishlistItem.deleteMany({
+        where: { productId: id }
+      })
+    }
+
+    // Delete product from database
     await prisma.product.delete({
       where: { id }
     })

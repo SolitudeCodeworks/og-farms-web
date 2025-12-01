@@ -240,7 +240,7 @@ export default function NewProductPage() {
                 className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
               >
                 {PRODUCT_CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value.toUpperCase().replace('-', '_')}>
+                  <option key={cat.value} value={cat.value}>
                     {cat.label}
                   </option>
                 ))}

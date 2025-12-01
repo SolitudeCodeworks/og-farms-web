@@ -1,16 +1,16 @@
 // Single source of truth for product categories and filters
 
 export const PRODUCT_CATEGORIES = [
-  { value: "flower", label: "Flower" },
-  { value: "pre-rolls", label: "Pre-Rolls" },
-  { value: "edibles", label: "Edibles" },
-  { value: "concentrates", label: "Concentrates" },
-  { value: "vapes", label: "Vapes" },
-  { value: "accessories", label: "Accessories" },
-  { value: "papers", label: "Rolling Papers" },
-  { value: "bongs", label: "Bongs & Pipes" },
-  { value: "grinders", label: "Grinders" },
-  { value: "other", label: "Other" },
+  { value: "FLOWER", label: "Flower" },
+  { value: "PRE_ROLLS", label: "Pre-Rolls" },
+  { value: "EDIBLES", label: "Edibles" },
+  { value: "CONCENTRATES", label: "Concentrates" },
+  { value: "VAPES", label: "Vapes" },
+  { value: "ACCESSORIES", label: "Accessories" },
+  { value: "ROLLING_PAPERS", label: "Rolling Papers" },
+  { value: "BONGS_AND_PIPES", label: "Bongs & Pipes" },
+  { value: "GRINDERS", label: "Grinders" },
+  { value: "OTHER", label: "Other" },
 ] as const
 
 export const STRAIN_TYPES = [

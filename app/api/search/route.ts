@@ -3,6 +3,37 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
+// Reuse age verification cache from products API
+const ageVerificationCache = new Map<string, { isOver18: boolean, timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+async function checkUserAge(email: string): Promise<boolean> {
+  const cached = ageVerificationCache.get(email)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.isOver18
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { dateOfBirth: true }
+  })
+  
+  let isOver18 = false
+  if (user?.dateOfBirth) {
+    const birthDate = new Date(user.dateOfBirth)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    isOver18 = age >= 18
+  }
+
+  ageVerificationCache.set(email, { isOver18, timestamp: Date.now() })
+  return isOver18
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -17,26 +48,8 @@ export async function GET(request: NextRequest) {
     
     // Check if user is logged in and 18+
     let isOver18 = false
-    
     if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { 
-          dateOfBirth: true
-        }
-      })
-      
-      if (user?.dateOfBirth) {
-        // Calculate age from date of birth
-        const birthDate = new Date(user.dateOfBirth)
-        const today = new Date()
-        let age = today.getFullYear() - birthDate.getFullYear()
-        const monthDiff = today.getMonth() - birthDate.getMonth()
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--
-        }
-        isOver18 = age >= 18
-      }
+      isOver18 = await checkUserAge(session.user.email)
     }
 
     // Search products in database

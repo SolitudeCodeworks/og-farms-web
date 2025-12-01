@@ -62,6 +62,12 @@ model Product {
   storeInventory    StoreInventory[]
   frequentlyBoughtWith FrequentlyBoughtTogether[] @relation("ProductA")
   frequentlyBoughtBy   FrequentlyBoughtTogether[] @relation("ProductB")
+  
+  @@index([category])
+  @@index([featured])
+  @@index([ageRestricted])
+  @@index([createdAt])
+  @@index([category, ageRestricted])
 }
 
 model CartItem {
@@ -142,13 +148,14 @@ enum UserRole {
 enum Category {
   FLOWER
   PRE_ROLLS
-  CONCENTRATES
   EDIBLES
-  ACCESSORIES
-  PAPERS
-  GRINDERS
-  BONGS
+  CONCENTRATES
   VAPES
+  ACCESSORIES
+  ROLLING_PAPERS
+  BONGS_AND_PIPES
+  GRINDERS
+  OTHER
 }
 
 enum OrderStatus {

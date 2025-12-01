@@ -3,6 +3,36 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+// GET all products (admin only - no age restrictions)
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.email || session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
+    // Admin users see ALL products regardless of age restrictions
+    const products = await prisma.product.findMany({
+      orderBy: [
+        { featured: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    })
+
+    return NextResponse.json({ products })
+  } catch (error) {
+    console.error("Error fetching products:", error)
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
