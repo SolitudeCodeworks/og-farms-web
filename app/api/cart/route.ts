@@ -173,9 +173,75 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ cartItems })
+    return NextResponse.json({ items: cartItems })
   } catch (error) {
     console.error("Error fetching cart:", error)
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
+    const { cartItemId } = await request.json()
+
+    if (!cartItemId) {
+      return NextResponse.json(
+        { error: "Cart item ID is required" },
+        { status: 400 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      )
+    }
+
+    // Verify the cart item belongs to the user before deleting
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      select: { userId: true }
+    })
+
+    if (!cartItem) {
+      return NextResponse.json(
+        { error: "Cart item not found" },
+        { status: 404 }
+      )
+    }
+
+    if (cartItem.userId !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized to delete this item" },
+        { status: 403 }
+      )
+    }
+
+    await prisma.cartItem.delete({
+      where: { id: cartItemId }
+    })
+
+    return NextResponse.json({ message: "Item removed from cart" })
+  } catch (error) {
+    console.error("Error removing from cart:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

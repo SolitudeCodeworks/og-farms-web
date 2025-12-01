@@ -40,7 +40,7 @@ export function Hero() {
             data-aos="fade-up"
             data-aos-delay="200"
           >
-            Premium quality cannabis with fast and discreet delivery across South Africa.
+            Premium medical cannabis products for adults 18+. Fast and discreet delivery across South Africa.
           </p>
 
           <div 

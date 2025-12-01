@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { ShoppingCart, User, Menu, X, Search, LogOut, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useCart } from "@/contexts/cart-context"
 import { CartDropdown } from "@/components/cart/cart-dropdown"
 import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
@@ -12,27 +11,39 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const { totalItems: loggedInCartItems } = useCart()
   const { data: session, status } = useSession()
-  const [guestCartCount, setGuestCartCount] = useState(0)
+  const [cartCount, setCartCount] = useState(0)
 
-  // Load guest cart count
+  // Load cart count (from database for logged-in users, localStorage for guests)
   useEffect(() => {
-    const updateGuestCartCount = () => {
-      if (!session) {
+    const updateCartCount = async () => {
+      if (session) {
+        // Fetch from database for logged-in users
+        try {
+          const response = await fetch('/api/cart')
+          if (response.ok) {
+            const data = await response.json()
+            const count = data.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
+            setCartCount(count)
+          }
+        } catch (error) {
+          console.error('Error fetching cart:', error)
+        }
+      } else {
+        // Load from localStorage for guests
         const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
         const count = guestCart.reduce((sum: number, item: any) => sum + item.quantity, 0)
-        setGuestCartCount(count)
+        setCartCount(count)
       }
     }
 
-    updateGuestCartCount()
-    window.addEventListener('cartUpdated', updateGuestCartCount)
+    updateCartCount()
+    window.addEventListener('cartUpdated', updateCartCount)
     
-    return () => window.removeEventListener('cartUpdated', updateGuestCartCount)
+    return () => window.removeEventListener('cartUpdated', updateCartCount)
   }, [session])
 
-  const totalItems = session ? loggedInCartItems : guestCartCount
+  const totalItems = cartCount
 
   const navigation = [
     { name: "Shop", href: "/shop" },

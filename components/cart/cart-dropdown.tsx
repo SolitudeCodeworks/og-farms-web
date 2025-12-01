@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useCart } from '@/contexts/cart-context'
 import { formatPrice } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,23 +16,48 @@ interface GuestCartItem {
   ageRestricted: boolean
 }
 
+interface DbCartItem {
+  id: string
+  productId: string
+  quantity: number
+  product: {
+    id: string
+    name: string
+    price: number
+    images: string[]
+    category: string
+  }
+}
+
 export function CartDropdown() {
   const { data: session } = useSession()
-  const { items: loggedInItems, removeItem: removeLoggedInItem, totalPrice: loggedInTotal } = useCart()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
+  const [dbCart, setDbCart] = useState<DbCartItem[]>([])
 
   useEffect(() => {
-    const updateGuestCart = () => {
-      if (!session) {
+    const updateCart = async () => {
+      if (session) {
+        // Fetch from database for logged-in users
+        try {
+          const response = await fetch('/api/cart')
+          if (response.ok) {
+            const data = await response.json()
+            setDbCart(data.items || [])
+          }
+        } catch (error) {
+          console.error('Error fetching cart:', error)
+        }
+      } else {
+        // Load from localStorage for guests
         const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
         setGuestCart(cart)
       }
     }
 
-    updateGuestCart()
-    window.addEventListener('cartUpdated', updateGuestCart)
+    updateCart()
+    window.addEventListener('cartUpdated', updateCart)
     
-    return () => window.removeEventListener('cartUpdated', updateGuestCart)
+    return () => window.removeEventListener('cartUpdated', updateCart)
   }, [session])
 
   const removeGuestItem = (productId: string) => {
@@ -43,9 +67,25 @@ export function CartDropdown() {
     window.dispatchEvent(new Event('cartUpdated'))
   }
 
-  const items = session ? loggedInItems : guestCart
+  const removeDbItem = async (cartItemId: string) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartItemId })
+      })
+      
+      if (response.ok) {
+        window.dispatchEvent(new Event('cartUpdated'))
+      }
+    } catch (error) {
+      console.error('Error removing item:', error)
+    }
+  }
+
+  const items = session ? dbCart : guestCart
   const totalPrice = session 
-    ? loggedInTotal 
+    ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
     : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
 
   if (items.length === 0) {
@@ -62,11 +102,11 @@ export function CartDropdown() {
       <div className="p-4 space-y-4">
         {items.map((item) => {
           const isGuest = 'productName' in item
-          const itemId = isGuest ? (item as GuestCartItem).productId : (item as any).id
-          const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as any).image
-          const itemName = isGuest ? (item as GuestCartItem).productName : (item as any).name
-          const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).price
-          const itemCategory = isGuest ? '' : (item as any).category
+          const itemId = isGuest ? (item as GuestCartItem).productId : (item as DbCartItem).id
+          const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as DbCartItem).product.images[0]
+          const itemName = isGuest ? (item as GuestCartItem).productName : (item as DbCartItem).product.name
+          const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as DbCartItem).product.price
+          const itemCategory = isGuest ? '' : (item as DbCartItem).product.category
           const itemQuantity = item.quantity
 
           return (
@@ -78,7 +118,7 @@ export function CartDropdown() {
                 border: '1px solid rgba(74, 222, 128, 0.2)',
               }}
             >
-              <div className="relative w-16 h-16 rounded overflow-hidden flex-shrink-0">
+              <div className="relative w-16 h-16 rounded overflow-hidden shrink-0">
                 <Image
                   src={itemImage}
                   alt={itemName}
@@ -96,8 +136,8 @@ export function CartDropdown() {
                 </div>
               </div>
               <button
-                onClick={() => session ? removeLoggedInItem(itemId) : removeGuestItem(itemId)}
-                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                onClick={() => session ? removeDbItem(itemId) : removeGuestItem(itemId)}
+                className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>

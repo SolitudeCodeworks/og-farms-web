@@ -8,7 +8,6 @@ import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { formatPrice } from "@/lib/utils"
-import { useCart } from "@/contexts/cart-context"
 
 interface ProductCardProps {
   id: string
@@ -42,7 +41,6 @@ export function ProductCard({
     ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
     : 0
   
-  const { addItem } = useCart()
   const [adding, setAdding] = useState(false)
 
   const handleAddToCart = async () => {
@@ -56,14 +54,23 @@ export function ProductCard({
 
     try {
       if (session) {
-        // Logged-in user: Use context/API
-        addItem({
-          id,
-          name,
-          price,
-          image,
-          category,
+        // Logged-in user: Use API to add to database
+        const response = await fetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: id,
+            quantity: 1
+          })
         })
+
+        if (!response.ok) {
+          const data = await response.json()
+          alert(data.error || "Failed to add to cart")
+        } else {
+          // Dispatch event to update cart count in header
+          window.dispatchEvent(new Event('cartUpdated'))
+        }
       } else {
         // Guest user: Use localStorage
         const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')

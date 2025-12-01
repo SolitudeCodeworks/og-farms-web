@@ -254,3 +254,15 @@ model StoreInventory {
   @@index([productId])
   @@index([quantity])
 }
+
+model SiteSettings {
+  id                String   @id @default(cuid())
+  key               String   @unique // e.g., "social_facebook", "social_instagram"
+  value             String   @db.Text // The actual URL or value
+  category          String   @default("general") // e.g., "social", "contact", "general"
+  description       String?  // Human-readable description
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  @@index([category])
+}

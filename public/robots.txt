@@ -1,0 +1,13 @@
+# OG Farms - Medical Cannabis - 18+ Only
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /orders/
+
+# Sitemap
+Sitemap: https://ogfarms.co.za/sitemap.xml
+
+# Age restriction notice
+# This site contains content for adults 18+ only
