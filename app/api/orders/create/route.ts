@@ -2,6 +2,28 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { unstable_cache } from 'next/cache'
+
+// Cache admin emails for 5 minutes
+const getAdminEmails = unstable_cache(
+  async () => {
+    const admins = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN'
+      },
+      select: {
+        email: true,
+        name: true
+      }
+    })
+    return admins
+  },
+  ['admin-emails'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['admin-emails']
+  }
+)
 
 export async function POST(request: Request) {
   try {
@@ -391,6 +413,146 @@ export async function POST(request: Request) {
       console.error('Stack:', emailError.stack)
       console.error('==============================')
       // Don't fail the order if email fails
+    }
+
+    // Send admin notification email
+    try {
+      const admins = await getAdminEmails()
+      
+      if (admins && admins.length > 0) {
+        // First admin is TO, rest are CC
+        const [firstAdmin, ...otherAdmins] = admins
+        
+        const adminEmailPayload: any = {
+          sender: {
+            name: 'OG Farms System',
+            email: process.env.BREVO_SENDER_EMAIL || 'noreply@ogfarms.co.za'
+          },
+          to: [
+            {
+              email: firstAdmin.email,
+              name: firstAdmin.name || 'Admin'
+            }
+          ],
+          subject: `🔔 New Order #${order.orderNumber} - ${customerName}`,
+          htmlContent: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; margin: 0; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+                .header { background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); color: white; padding: 30px; text-align: center; }
+                .content { padding: 30px; }
+                .order-details { background: #f9f9f9; border-left: 4px solid #4ade80; padding: 15px; margin: 20px 0; }
+                .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+                .detail-label { font-weight: bold; color: #666; }
+                .detail-value { color: #333; }
+                .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                .items-table th { background: #4ade80; color: white; padding: 12px; text-align: left; }
+                .items-table td { padding: 12px; border-bottom: 1px solid #eee; }
+                .total { font-size: 20px; font-weight: bold; color: #22c55e; text-align: right; margin-top: 20px; }
+                .button { display: inline-block; background: #4ade80; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1 style="margin: 0;">🔔 New Order Received!</h1>
+                  <p style="margin: 10px 0 0 0; opacity: 0.9;">Order #${order.orderNumber}</p>
+                </div>
+                
+                <div class="content">
+                  <h2 style="color: #22c55e;">Customer Information</h2>
+                  <div class="order-details">
+                    <div class="detail-row">
+                      <span class="detail-label">Name:</span>
+                      <span class="detail-value">${customerName}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Email:</span>
+                      <span class="detail-value">${customerEmail}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Phone:</span>
+                      <span class="detail-value">${customerPhone}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Delivery Method:</span>
+                      <span class="detail-value">${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '🚚 Delivery'}</span>
+                    </div>
+                    ${deliveryMethod === 'delivery' && address ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Address:</span>
+                      <span class="detail-value">${address.street}, ${address.city}, ${address.province} ${address.postalCode}</span>
+                    </div>
+                    ` : ''}
+                  </div>
+
+                  <h2 style="color: #22c55e;">Order Items</h2>
+                  <table class="items-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items.map((item: any) => `
+                        <tr>
+                          <td>${item.productName || item.name || 'Product'}</td>
+                          <td>${item.quantity}</td>
+                          <td>R${((item.productPrice || item.price) * item.quantity).toFixed(2)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+
+                  <div class="total">
+                    Total: R${totalAmount.toFixed(2)}
+                  </div>
+
+                  <div style="text-align: center; margin-top: 30px;">
+                    <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://ogfarms.co.za'}/admin/orders" class="button">
+                      View in Admin Panel
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </body>
+            </html>
+          `
+        }
+
+        // Add CC for other admins
+        if (otherAdmins.length > 0) {
+          adminEmailPayload.cc = otherAdmins.map(admin => ({
+            email: admin.email,
+            name: admin.name || 'Admin'
+          }))
+        }
+
+        const adminEmailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'api-key': process.env.BREVO_API_KEY || ''
+          },
+          body: JSON.stringify(adminEmailPayload)
+        })
+
+        if (adminEmailResponse.ok) {
+          console.log('=== ADMIN EMAIL SENT ===')
+          console.log('To:', firstAdmin.email)
+          console.log('CC:', otherAdmins.map(a => a.email).join(', '))
+          console.log('========================')
+        }
+      }
+    } catch (adminEmailError) {
+      console.error('Admin email error:', adminEmailError)
+      // Don't fail the order if admin email fails
     }
 
     return NextResponse.json({
