@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { PRODUCT_CATEGORIES, STRAIN_TYPES } from "@/lib/product-constants"
+import { PRODUCT_CATEGORIES, STRAIN_TYPES, SUBCATEGORIES } from "@/lib/product-constants"
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -23,6 +23,7 @@ export default function EditProductPage() {
     description: "",
     price: 0,
     category: "FLOWER",
+    subcategory: "",
     thcContent: "",
     cbdContent: "",
     strain: "",
@@ -50,6 +51,7 @@ export default function EditProductPage() {
           description: data.product.description,
           price: data.product.price,
           category: data.product.category,
+          subcategory: data.product.subcategory || "",
           thcContent: data.product.thcContent || "",
           cbdContent: data.product.cbdContent || "",
           strain: data.product.strain || "",
@@ -334,6 +336,24 @@ export default function EditProductPage() {
                 {STRAIN_TYPES.map((strain) => (
                   <option key={strain.value} value={strain.value}>
                     {strain.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-white mb-2">
+                Subcategory (Growing Method)
+              </label>
+              <select
+                name="subcategory"
+                value={formData.subcategory}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+              >
+                <option value="">Select subcategory...</option>
+                {SUBCATEGORIES.map((sub) => (
+                  <option key={sub.value} value={sub.value}>
+                    {sub.label}
                   </option>
                 ))}
               </select>

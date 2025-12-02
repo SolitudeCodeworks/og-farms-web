@@ -1,0 +1,29 @@
+create table public."Product"
+(
+    id               text                                       not null
+        primary key,
+    name             text                                       not null,
+    slug             text                                       not null,
+    description      text                                       not null,
+    price            double precision                           not null,
+    "compareAtPrice" double precision,
+    category         "Category"                                 not null,
+    subcategory      text,
+    images           text[],
+    featured         boolean          default false             not null,
+    "thcContent"     double precision,
+    "cbdContent"     double precision,
+    strain           text,
+    "averageRating"  double precision default 0,
+    "totalReviews"   integer          default 0                 not null,
+    "totalSales"     integer          default 0                 not null,
+    "createdAt"      timestamp(3)     default CURRENT_TIMESTAMP not null,
+    "updatedAt"      timestamp(3)                               not null
+);
+
+alter table public."Product"
+    owner to neondb_owner;
+
+create unique index "Product_slug_key"
+    on public."Product" (slug);
+

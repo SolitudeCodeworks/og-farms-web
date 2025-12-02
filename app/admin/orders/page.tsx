@@ -21,6 +21,7 @@ interface Order {
   deliveryCountry?: string | null
   createdAt: string
   pickupStoreId?: string
+  paymentReference?: string
   user?: {
     name: string
     email: string
@@ -600,7 +601,7 @@ export default function OrdersPage() {
               {/* Order Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="text-xl font-bold text-white">#{order.orderNumber}</h3>
                     <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>
                       {getStatusIcon(order.status)}
@@ -609,6 +610,22 @@ export default function OrdersPage() {
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-gray-300">
                       {order.fulfillmentType}
                     </span>
+                    {/* Payment Method Badge */}
+                    {order.paymentReference === 'CASH_PAYMENT' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Cash
+                      </span>
+                    ) : order.paymentReference ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs font-bold text-green-400">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Paid
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-sm text-gray-400">
                     {new Date(order.createdAt).toLocaleDateString()} • {order.user?.name || order.user?.email || 'Guest'}
@@ -648,6 +665,15 @@ export default function OrdersPage() {
                       <p className="text-white font-medium">Pickup Location:</p>
                       <p className="text-gray-300">{order.pickupStore.name}</p>
                       <p className="text-gray-400">{order.pickupStore.city}</p>
+                    </>
+                  ) : order.fulfillmentType === "DELIVERY" && order.deliveryStreet ? (
+                    <>
+                      <p className="text-white font-medium">Delivery Address:</p>
+                      <p className="text-gray-300">{order.customerName}</p>
+                      <p className="text-gray-400">{order.deliveryStreet}</p>
+                      <p className="text-gray-400">
+                        {order.deliveryCity}, {order.deliveryState} {order.deliveryZipCode}
+                      </p>
                     </>
                   ) : order.shippingAddress ? (
                     <>
@@ -827,6 +853,39 @@ export default function OrdersPage() {
                     <span className="text-gray-400">Fulfillment Type:</span>
                     <span className="text-white font-medium">{customerInfoModal.order.fulfillmentType}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Payment Method:</span>
+                    <span className="text-white font-medium">
+                      {customerInfoModal.order.paymentReference === 'CASH_PAYMENT' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-xs font-bold text-orange-400">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          Cash on Pickup
+                        </span>
+                      ) : customerInfoModal.order.paymentReference ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs font-bold text-green-400">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          Paid Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-500/20 border border-gray-500/30 rounded-full text-xs font-bold text-gray-400">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Unknown
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {customerInfoModal.order.paymentReference && customerInfoModal.order.paymentReference !== 'CASH_PAYMENT' && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Payment Ref:</span>
+                      <span className="text-white text-xs font-mono">{customerInfoModal.order.paymentReference}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t border-zinc-700">
                     <span className="text-gray-400">Total Amount:</span>
                     <span className="text-primary">R{customerInfoModal.order.total.toFixed(2)}</span>

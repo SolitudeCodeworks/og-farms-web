@@ -34,6 +34,7 @@ export async function GET() {
         createdAt: true,
         updatedAt: true,
         pickupStoreId: true,
+        paymentReference: true,
         user: {
           select: {
             name: true,

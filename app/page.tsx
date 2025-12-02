@@ -66,6 +66,8 @@ async function getFeaturedProducts() {
         compareAtPrice: product.compareAtPrice ?? undefined,
         image: product.images[0] || "/products/placeholder.svg",
         category: product.category,
+        subcategory: product.subcategory ?? undefined,
+        strain: product.strain ?? undefined,
         thcContent: product.thcContent ? parseFloat(product.thcContent) : undefined,
         cbdContent: product.cbdContent ? parseFloat(product.cbdContent) : undefined,
         stock: totalStock,

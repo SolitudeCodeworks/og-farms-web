@@ -17,6 +17,8 @@ interface ProductCardProps {
   compareAtPrice?: number
   image: string
   category: string
+  subcategory?: string
+  strain?: string
   thcContent?: number
   cbdContent?: number
   stock: number
@@ -31,6 +33,8 @@ export function ProductCard({
   compareAtPrice,
   image,
   category,
+  subcategory,
+  strain,
   thcContent,
   cbdContent,
   stock,
@@ -142,9 +146,9 @@ export function ProductCard({
             {category}
           </div>
 
-          {/* THC/CBD Content */}
-          {(thcContent || cbdContent) && (
-            <div className="absolute bottom-3 left-3 flex gap-2">
+          {/* THC/CBD/Strain/Subcategory Content */}
+          {(thcContent || cbdContent || strain || subcategory) && (
+            <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 max-w-[calc(100%-1.5rem)]">
               {thcContent && (
                 <div className="px-2 py-1 rounded text-xs font-bold backdrop-blur-md"
                      style={{
@@ -163,6 +167,26 @@ export function ProductCard({
                        color: '#4ade80',
                      }}>
                   CBD {cbdContent}%
+                </div>
+              )}
+              {strain && strain !== 'n/a' && (
+                <div className="px-2 py-1 rounded text-xs font-bold backdrop-blur-md"
+                     style={{
+                       backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                       border: '1px solid rgba(168, 85, 247, 0.4)',
+                       color: '#a855f7',
+                     }}>
+                  {strain.toUpperCase()}
+                </div>
+              )}
+              {subcategory && (
+                <div className="px-2 py-1 rounded text-xs font-bold backdrop-blur-md"
+                     style={{
+                       backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                       border: '1px solid rgba(59, 130, 246, 0.4)',
+                       color: '#3b82f6',
+                     }}>
+                  {subcategory.replace('_', ' ').toUpperCase()}
                 </div>
               )}
             </div>

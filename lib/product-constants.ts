@@ -17,8 +17,16 @@ export const STRAIN_TYPES = [
   { value: "indica", label: "Indica" },
   { value: "sativa", label: "Sativa" },
   { value: "hybrid", label: "Hybrid" },
-  { value: "cbd", label: "CBD" },
   { value: "n/a", label: "N/A" },
+] as const
+
+export const SUBCATEGORIES = [
+  { value: "no", label: "No" },
+  { value: "medical", label: "Medical" },
+  { value: "promo_indoor", label: "Promo Indoor" },
+  { value: "indoor", label: "Indoor" },
+  { value: "greenhouse", label: "Green House" },
+  { value: "outdoor", label: "Outdoor" },
 ] as const
 
 export const PRICE_RANGES = [
@@ -45,4 +53,9 @@ export function getCategoryLabel(value: string): string {
 // Helper to get strain label from value
 export function getStrainLabel(value: string): string {
   return STRAIN_TYPES.find(strain => strain.value === value)?.label || value
+}
+
+// Helper to get subcategory label from value
+export function getSubcategoryLabel(value: string): string {
+  return SUBCATEGORIES.find(sub => sub.value === value)?.label || value
 }

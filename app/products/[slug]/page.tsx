@@ -13,6 +13,7 @@ interface Product {
   description: string
   price: number
   category: string
+  subcategory: string | null
   thcContent: string | null
   cbdContent: string | null
   strain: string | null
@@ -577,8 +578,8 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* THC/CBD/Strain */}
-            {(product.thcContent || product.cbdContent || product.strain) && (
+            {/* THC/CBD/Strain/Subcategory */}
+            {(product.thcContent || product.cbdContent || product.strain || product.subcategory) && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {product.thcContent && (
                   <span className="px-4 py-2 bg-green-500/20 text-green-400 font-medium rounded-lg">
@@ -586,13 +587,18 @@ export default function ProductDetailPage() {
                   </span>
                 )}
                 {product.cbdContent && (
-                  <span className="px-4 py-2 bg-blue-500/20 text-blue-400 font-medium rounded-lg">
+                  <span className="px-4 py-2 bg-green-500/20 text-green-400 font-medium rounded-lg">
                     CBD: {product.cbdContent}%
                   </span>
                 )}
-                {product.strain && (
-                  <span className="px-4 py-2 bg-purple-500/20 text-purple-400 font-medium rounded-lg capitalize">
+                {product.strain && product.strain !== 'n/a' && (
+                  <span className="px-4 py-2 bg-purple-500/20 text-purple-400 font-medium rounded-lg uppercase">
                     {product.strain}
+                  </span>
+                )}
+                {product.subcategory && (
+                  <span className="px-4 py-2 bg-blue-500/20 text-blue-400 font-medium rounded-lg uppercase">
+                    {product.subcategory.replace('_', ' ')}
                   </span>
                 )}
               </div>

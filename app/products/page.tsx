@@ -546,7 +546,7 @@ export default function ProductsPage() {
                       {product.description}
                     </p>
                     
-                    {/* THC/CBD/Strain */}
+                    {/* THC/CBD/Strain/Subcategory */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {product.thcContent && (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
@@ -554,13 +554,18 @@ export default function ProductsPage() {
                         </span>
                       )}
                       {product.cbdContent && (
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded">
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
                           CBD: {product.cbdContent}%
                         </span>
                       )}
-                      {product.strain && (
-                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded capitalize">
+                      {product.strain && product.strain !== 'n/a' && (
+                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded uppercase">
                           {product.strain}
+                        </span>
+                      )}
+                      {product.subcategory && (
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded uppercase">
+                          {product.subcategory.replace('_', ' ')}
                         </span>
                       )}
                     </div>

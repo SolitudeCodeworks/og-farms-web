@@ -62,6 +62,7 @@ export async function PUT(
       description,
       price,
       category,
+      subcategory,
       thcContent,
       cbdContent,
       strain,
@@ -78,6 +79,7 @@ export async function PUT(
         description,
         price,
         category,
+        subcategory: subcategory && subcategory.trim() !== "" ? subcategory : null,
         thcContent: thcContent && thcContent.trim() !== "" ? thcContent : null,
         cbdContent: cbdContent && cbdContent.trim() !== "" ? cbdContent : null,
         strain: strain && strain.trim() !== "" ? strain : null,
@@ -155,6 +157,11 @@ export async function DELETE(
         where: { productId: id }
       })
     }
+
+    // Delete all inventory entries for this product across all stores
+    await prisma.storeInventory.deleteMany({
+      where: { productId: id }
+    })
 
     // Delete product from database
     await prisma.product.delete({

@@ -34,6 +34,10 @@ export default function InventoryPage() {
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'remove' | 'set'>('add')
   const [adjustmentAmount, setAdjustmentAmount] = useState("")
   const [adjusting, setAdjusting] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     loadInventory()
@@ -96,13 +100,48 @@ export default function InventoryPage() {
         setAdjustmentAmount("")
       } else {
         const data = await response.json()
-        alert(data.error || "Failed to adjust stock")
+        setErrorMessage(data.error || "Failed to adjust stock")
+        setTimeout(() => setErrorMessage(null), 3000)
       }
     } catch (error) {
       console.error("Error adjusting stock:", error)
-      alert("Failed to adjust stock")
+      setErrorMessage("Failed to adjust stock")
+      setTimeout(() => setErrorMessage(null), 3000)
     } finally {
       setAdjusting(false)
+    }
+  }
+
+  const openDeleteModal = (item: InventoryItem) => {
+    setItemToDelete(item)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteStock = async () => {
+    if (!itemToDelete) return
+
+    setDeleting(true)
+
+    try {
+      const response = await fetch(`/api/admin/inventory/${itemToDelete.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        await loadInventory()
+        setShowDeleteModal(false)
+        setItemToDelete(null)
+      } else {
+        const data = await response.json()
+        setErrorMessage(data.error || "Failed to delete stock")
+        setTimeout(() => setErrorMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error("Error deleting stock:", error)
+      setErrorMessage("Failed to delete stock")
+      setTimeout(() => setErrorMessage(null), 3000)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -301,18 +340,32 @@ export default function InventoryPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => openAdjustModal(item)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
-                        style={{
-                          background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                          color: '#000',
-                          boxShadow: '0 2px 8px rgba(74, 222, 128, 0.3)',
-                        }}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                        Adjust Stock
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => openAdjustModal(item)}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                          style={{
+                            background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                            color: '#000',
+                            boxShadow: '0 2px 8px rgba(74, 222, 128, 0.3)',
+                          }}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Adjust Stock
+                        </button>
+                        <button 
+                          onClick={() => openDeleteModal(item)}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 bg-red-600 hover:bg-red-700 text-white"
+                          style={{
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -478,6 +531,85 @@ export default function InventoryPage() {
                 }}
               >
                 {adjusting ? '⏳ Updating...' : '✓ Confirm Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          />
+          <div className="relative bg-zinc-900 rounded-2xl p-8 max-w-md w-full border-2 border-red-500/30 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 rounded-xl bg-red-500/20">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white">Delete Stock Entry?</h2>
+            </div>
+
+            {/* Content */}
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-300">
+                Are you sure you want to delete this stock entry?
+              </p>
+              <div className="p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+                <p className="text-white font-semibold">{itemToDelete.product.name}</p>
+                <p className="text-gray-400 text-sm">{itemToDelete.store.name}</p>
+                <p className="text-gray-400 text-sm">Current Stock: {itemToDelete.quantity}</p>
+              </div>
+              <p className="text-red-400 text-sm font-medium">
+                ⚠️ This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 py-3 px-6 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-xl transition-all hover:scale-105 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteStock}
+                disabled={deleting}
+                className="flex-1 py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all hover:scale-105 disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Stock'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 max-w-md animate-in slide-in-from-top-5 fade-in duration-300">
+          <div className="bg-red-500/90 backdrop-blur-sm border border-red-400 rounded-lg p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-white shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-white font-semibold mb-1">Error</p>
+                <p className="text-white/90 text-sm">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>

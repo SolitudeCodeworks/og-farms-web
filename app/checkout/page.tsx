@@ -20,6 +20,10 @@ interface GuestCartItem {
 }
 
 export default function CheckoutPage() {
+  // Feature flags
+const DELIVERY_ENABLED = process.env.NEXT_PUBLIC_DELIVERY_ENABLED === 'true'
+const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
+  
   const { data: session } = useSession()
   const { items: loggedInItems, totalPrice: loggedInTotal, clearCart } = useCart()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
@@ -35,12 +39,14 @@ export default function CheckoutPage() {
   const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery')
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>(DELIVERY_ENABLED ? 'delivery' : 'pickup')
   const [selectedStore, setSelectedStore] = useState('')
   const [stores, setStores] = useState<any[]>([])
   const [storeStock, setStoreStock] = useState<Record<string, number>>({})
   const [checkingStock, setCheckingStock] = useState(false)
   const [deliveryFee, setDeliveryFee] = useState(0)
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYSTACK_ENABLED ? 'online' : 'cash')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const loadCart = async () => {
@@ -166,7 +172,11 @@ export default function CheckoutPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create order')
+        const errorData = await response.json()
+        setErrorMessage(errorData.error || 'Failed to create order')
+        setTimeout(() => setErrorMessage(null), 5000)
+        setIsProcessing(false)
+        return
       }
 
       const data = await response.json()
@@ -200,10 +210,10 @@ export default function CheckoutPage() {
         }
       }
       router.push(successUrl)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error)
-      alert('Order creation failed. Please contact support with reference: ' + reference)
-    } finally {
+      setErrorMessage(error.message || 'Order creation failed. Please try again.')
+      setTimeout(() => setErrorMessage(null), 5000)
       setIsProcessing(false)
     }
   }
@@ -300,6 +310,31 @@ export default function CheckoutPage() {
 
   return (
     <>
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 max-w-md animate-in slide-in-from-top-5 fade-in duration-300">
+          <div className="bg-red-500/90 backdrop-blur-sm border border-red-400 rounded-lg p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-white shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-white font-semibold mb-1">Order Failed</p>
+                <p className="text-white/90 text-sm">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Processing Overlay */}
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
@@ -353,23 +388,33 @@ export default function CheckoutPage() {
                   Delivery Method *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDeliveryMethod('delivery')}
-                    className={`py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
-                      deliveryMethod === 'delivery' ? 'scale-105' : ''
-                    }`}
-                    style={{
-                      background: deliveryMethod === 'delivery' 
-                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
-                        : '#f3f4f6',
-                      color: deliveryMethod === 'delivery' ? '#000' : '#6b7280',
-                      boxShadow: deliveryMethod === 'delivery' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
-                    }}
-                  >
-                    <Truck className="h-5 w-5" />
-                    Delivery
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => DELIVERY_ENABLED && setDeliveryMethod('delivery')}
+                      disabled={!DELIVERY_ENABLED}
+                      className={`w-full py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                        deliveryMethod === 'delivery' ? 'scale-105' : ''
+                      } ${!DELIVERY_ENABLED ? 'cursor-not-allowed opacity-60' : ''}`}
+                      style={{
+                        background: deliveryMethod === 'delivery' 
+                          ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                          : !DELIVERY_ENABLED ? '#3f3f46' : '#f3f4f6',
+                        color: deliveryMethod === 'delivery' ? '#000' : !DELIVERY_ENABLED ? '#a1a1aa' : '#6b7280',
+                        boxShadow: deliveryMethod === 'delivery' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                      }}
+                    >
+                      <Truck className="h-5 w-5" />
+                      Delivery
+                    </button>
+                    {!DELIVERY_ENABLED && (
+                      <div className="absolute -bottom-8 left-0 right-0">
+                        <p className="text-xs text-orange-400 text-center font-medium">
+                          Coming Soon
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setDeliveryMethod('pickup')}
@@ -388,6 +433,24 @@ export default function CheckoutPage() {
                     Store Pickup
                   </button>
                 </div>
+                
+                {/* Delivery Not Available Notice */}
+                {!DELIVERY_ENABLED && (
+                  <div className="mt-8 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 mt-0.5">
+                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm text-orange-400 leading-relaxed">
+                          <span className="font-semibold">Delivery Service Temporarily Unavailable:</span> We're currently only offering store pickup. Delivery service will be available soon. Thank you for your understanding!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Store Selection for Pickup */}
@@ -451,6 +514,83 @@ export default function CheckoutPage() {
                           )
                         })
                       ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Payment Method Selection - Only for Pickup */}
+              {deliveryMethod === 'pickup' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-white mb-3">
+                    Payment Method *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => PAYSTACK_ENABLED && setPaymentMethod('online')}
+                        disabled={!PAYSTACK_ENABLED}
+                        className={`w-full py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                          paymentMethod === 'online' ? 'scale-105' : ''
+                        } ${!PAYSTACK_ENABLED ? 'cursor-not-allowed opacity-60' : ''}`}
+                        style={{
+                          background: paymentMethod === 'online' 
+                            ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                            : !PAYSTACK_ENABLED ? '#3f3f46' : '#f3f4f6',
+                          color: paymentMethod === 'online' ? '#000' : !PAYSTACK_ENABLED ? '#a1a1aa' : '#6b7280',
+                          boxShadow: paymentMethod === 'online' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                        }}
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Pay Online
+                      </button>
+                      {!PAYSTACK_ENABLED && (
+                        <div className="absolute -bottom-8 left-0 right-0">
+                          <p className="text-xs text-orange-400 text-center font-medium">
+                            Coming Soon
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cash')}
+                      className={`py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                        paymentMethod === 'cash' ? 'scale-105' : ''
+                      }`}
+                      style={{
+                        background: paymentMethod === 'cash' 
+                          ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                          : '#f3f4f6',
+                        color: paymentMethod === 'cash' ? '#000' : '#6b7280',
+                        boxShadow: paymentMethod === 'cash' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                      }}
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Cash in Store
+                    </button>
+                  </div>
+                  
+                  {/* Payment Method Notice */}
+                  {!PAYSTACK_ENABLED && (
+                    <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 mt-0.5">
+                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-blue-400 leading-relaxed">
+                            <span className="font-semibold">Online Payments Coming Soon:</span> We're currently setting up secure online payments. For now, please select "Cash in Store" and pay when you collect your order.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -672,6 +812,25 @@ export default function CheckoutPage() {
                 })
 
                 if (hasRequiredFields && !hasInsufficientStock) {
+                  // Cash payment for pickup
+                  if (paymentMethod === 'cash' && deliveryMethod === 'pickup') {
+                    return (
+                      <button
+                        onClick={() => handleSuccess('CASH_PAYMENT')}
+                        disabled={isProcessing}
+                        className="w-full py-4 rounded-full font-bold uppercase tracking-wide text-lg transition-all hover:scale-105"
+                        style={{
+                          background: isProcessing ? 'rgba(100, 100, 100, 0.3)' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                          color: isProcessing ? '#666' : '#000',
+                          boxShadow: isProcessing ? 'none' : '0 4px 15px rgba(74, 222, 128, 0.4)',
+                        }}
+                      >
+                        {isProcessing ? 'Processing...' : 'Confirm Order - Pay in Store'}
+                      </button>
+                    )
+                  }
+                  
+                  // Online payment with Paystack
                   return (
                     <PaystackButton
                       email={email}
@@ -704,7 +863,9 @@ export default function CheckoutPage() {
               })()}
 
               <p className="text-xs text-gray-500 text-center mt-4">
-                Secure payment powered by Paystack
+                {paymentMethod === 'cash' && deliveryMethod === 'pickup' 
+                  ? 'Pay with cash when you collect your order at the store' 
+                  : 'Secure payment powered by Paystack'}
               </p>
             </div>
           </div>

@@ -102,6 +102,7 @@ model Order {
   customerEmail   String
   customerName    String
   customerPhone   String
+  paymentReference String?       // Payment reference (e.g., Paystack reference or 'CASH_PAYMENT')
   // Direct address fields for all orders (guest and logged-in)
   deliveryStreet  String?
   deliveryCity    String?

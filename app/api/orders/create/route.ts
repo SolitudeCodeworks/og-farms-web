@@ -146,6 +146,7 @@ export async function POST(request: Request) {
           customerEmail,
           customerName,
           customerPhone,
+          paymentReference: paymentReference,
           status: 'PROCESSING',
           fulfillmentType: deliveryMethod.toUpperCase() as 'DELIVERY' | 'PICKUP',
           pickupStoreId: deliveryMethod === 'pickup' ? storeId : null,
@@ -480,6 +481,10 @@ export async function POST(request: Request) {
                     <div class="detail-row">
                       <span class="detail-label">Delivery Method:</span>
                       <span class="detail-value">${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '🚚 Delivery'}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Payment Method:</span>
+                      <span class="detail-value">${paymentReference === 'CASH_PAYMENT' ? '💵 Cash on Pickup' : '💳 Paid Online'}</span>
                     </div>
                     ${deliveryMethod === 'delivery' && address ? `
                     <div class="detail-row">
