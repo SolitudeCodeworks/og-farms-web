@@ -249,71 +249,73 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* THC and CBD Content */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                THC Content
-              </label>
-              <input
-                type="text"
-                name="thcContent"
-                value={formData.thcContent}
-                onChange={handleChange}
-                placeholder="e.g., 20%"
-                className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
-              />
+          {/* THC/CBD/Strain/Subcategory - Only for Flower, Edibles, and Pre-Rolls */}
+          {(formData.category === 'FLOWER' || formData.category === 'EDIBLES' || formData.category === 'PRE_ROLLS') && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-white mb-2">
+                  THC Content
+                </label>
+                <input
+                  type="text"
+                  name="thcContent"
+                  value={formData.thcContent}
+                  onChange={handleChange}
+                  placeholder="e.g., 20%"
+                  className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-white mb-2">
+                  CBD Content
+                </label>
+                <input
+                  type="text"
+                  name="cbdContent"
+                  value={formData.cbdContent}
+                  onChange={handleChange}
+                  placeholder="e.g., 1%"
+                  className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-white mb-2">
+                  Strain Type
+                </label>
+                <select
+                  name="strain"
+                  value={formData.strain}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+                >
+                  <option value="">Select strain type...</option>
+                  {STRAIN_TYPES.map((strain) => (
+                    <option key={strain.value} value={strain.value}>
+                      {strain.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-white mb-2">
+                  Subcategory (Growing Method)
+                </label>
+                <select
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+                >
+                  <option value="">Select subcategory...</option>
+                  {SUBCATEGORIES.map((sub) => (
+                    <option key={sub.value} value={sub.value}>
+                      {sub.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                CBD Content
-              </label>
-              <input
-                type="text"
-                name="cbdContent"
-                value={formData.cbdContent}
-                onChange={handleChange}
-                placeholder="e.g., 1%"
-                className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                Strain Type
-              </label>
-              <select
-                name="strain"
-                value={formData.strain}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
-              >
-                <option value="">Select strain type...</option>
-                {STRAIN_TYPES.map((strain) => (
-                  <option key={strain.value} value={strain.value}>
-                    {strain.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                Subcategory (Growing Method)
-              </label>
-              <select
-                name="subcategory"
-                value={formData.subcategory}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
-              >
-                <option value="">Select subcategory...</option>
-                {SUBCATEGORIES.map((sub) => (
-                  <option key={sub.value} value={sub.value}>
-                    {sub.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
 
           {/* Product Images */}
           <div>

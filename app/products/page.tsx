@@ -548,12 +548,12 @@ export default function ProductsPage() {
                     
                     {/* THC/CBD/Strain/Subcategory */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {product.thcContent && (
+                      {product.thcContent && parseFloat(product.thcContent) > 0 && (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
                           THC: {product.thcContent}%
                         </span>
                       )}
-                      {product.cbdContent && (
+                      {product.cbdContent && parseFloat(product.cbdContent) > 0 && (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
                           CBD: {product.cbdContent}%
                         </span>

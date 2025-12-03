@@ -149,7 +149,7 @@ export function ProductCard({
           {/* THC/CBD/Strain/Subcategory Content */}
           {(thcContent || cbdContent || strain || subcategory) && (
             <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 max-w-[calc(100%-1.5rem)]">
-              {thcContent && (
+              {thcContent && thcContent > 0 && (
                 <div className="px-2 py-1 rounded text-xs font-bold backdrop-blur-md"
                      style={{
                        backgroundColor: 'rgba(74, 222, 128, 0.2)',
@@ -159,7 +159,7 @@ export function ProductCard({
                   THC {thcContent}%
                 </div>
               )}
-              {cbdContent && (
+              {cbdContent && cbdContent > 0 && (
                 <div className="px-2 py-1 rounded text-xs font-bold backdrop-blur-md"
                      style={{
                        backgroundColor: 'rgba(74, 222, 128, 0.2)',
