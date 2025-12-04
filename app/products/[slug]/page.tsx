@@ -583,12 +583,12 @@ export default function ProductDetailPage() {
               <div className="flex flex-wrap gap-2 mb-6">
                 {product.thcContent && parseFloat(product.thcContent) > 0 && (
                   <span className="px-4 py-2 bg-green-500/20 text-green-400 font-medium rounded-lg">
-                    THC: {product.thcContent}%
+                    THC: {product.thcContent}{product.thcContent.toLowerCase().includes('mg') ? '' : '%'}
                   </span>
                 )}
                 {product.cbdContent && parseFloat(product.cbdContent) > 0 && (
                   <span className="px-4 py-2 bg-green-500/20 text-green-400 font-medium rounded-lg">
-                    CBD: {product.cbdContent}%
+                    CBD: {product.cbdContent}{product.cbdContent.toLowerCase().includes('mg') ? '' : '%'}
                   </span>
                 )}
                 {product.strain && product.strain !== 'n/a' && (

@@ -16,27 +16,13 @@ export function Header() {
   const { data: session, status } = useSession()
   const [cartCount, setCartCount] = useState(0)
 
-  // Load cart count (from database for logged-in users, localStorage for guests)
+  // Load cart count from localStorage (fast, no DB calls)
   useEffect(() => {
-    const updateCartCount = async () => {
-      if (session) {
-        // Fetch from database for logged-in users
-        try {
-          const response = await fetch('/api/cart')
-          if (response.ok) {
-            const data = await response.json()
-            const count = data.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
-            setCartCount(count)
-          }
-        } catch (error) {
-          console.error('Error fetching cart:', error)
-        }
-      } else {
-        // Load from localStorage for guests
-        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-        const count = guestCart.reduce((sum: number, item: any) => sum + item.quantity, 0)
-        setCartCount(count)
-      }
+    const updateCartCount = () => {
+      // Always read from localStorage for fast display
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+      const count = cart.reduce((sum: number, item: any) => sum + item.quantity, 0)
+      setCartCount(count)
     }
 
     updateCartCount()
@@ -51,6 +37,7 @@ export function Header() {
     { name: "Home", href: "/" },
     { name: "Shop", href: "/shop" },
     { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
     { name: "Favourites", href: "/favourites" },
   ]
 

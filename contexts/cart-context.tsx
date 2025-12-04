@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useSession } from 'next-auth/react'
 
 interface CartItem {
   id: string
@@ -19,40 +20,112 @@ interface CartContextType {
   clearCart: () => void
   totalItems: number
   totalPrice: number
+  syncWithDB: () => Promise<void>
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { data: session } = useSession()
   const [items, setItems] = useState<CartItem[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Load cart from localStorage on mount
+  // On mount: Load from DB if logged in, otherwise from localStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart')
-    if (savedCart) {
-      setItems(JSON.parse(savedCart))
+    const initializeCart = async () => {
+      if (session?.user) {
+        // Logged in: Fetch from DB and overwrite localStorage
+        try {
+          const response = await fetch('/api/cart')
+          if (response.ok) {
+            const data = await response.json()
+            const dbItems = data.items.map((item: any) => ({
+              id: item.productId,
+              name: item.product.name,
+              price: item.product.price,
+              image: item.product.images[0] || '/products/placeholder.jpg',
+              quantity: item.quantity,
+              category: item.product.category,
+            }))
+            setItems(dbItems)
+            localStorage.setItem('cart', JSON.stringify(dbItems))
+          }
+        } catch (error) {
+          console.error('Error loading cart from DB:', error)
+          // Fallback to localStorage
+          const savedCart = localStorage.getItem('cart')
+          if (savedCart) {
+            setItems(JSON.parse(savedCart))
+          }
+        }
+      } else {
+        // Guest: Load from localStorage
+        const savedCart = localStorage.getItem('cart')
+        if (savedCart) {
+          setItems(JSON.parse(savedCart))
+        }
+      }
+      setIsInitialized(true)
     }
-  }, [])
 
-  // Save cart to localStorage whenever it changes
+    initializeCart()
+  }, [session])
+
+  // Save to localStorage whenever cart changes (after initialization)
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items))
-  }, [items])
+    if (isInitialized) {
+      localStorage.setItem('cart', JSON.stringify(items))
+      // Dispatch event to update cart count in header and dropdown
+      window.dispatchEvent(new Event('cartUpdated'))
+    }
+  }, [items, isInitialized])
+
+  // Sync to DB for logged-in users
+  const syncToDatabase = async (updatedItems: CartItem[]) => {
+    if (!session?.user) return
+
+    try {
+      await fetch('/api/cart/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: updatedItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+          }))
+        })
+      })
+    } catch (error) {
+      console.error('Error syncing to DB:', error)
+    }
+  }
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     setItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.id === item.id)
+      let newItems: CartItem[]
+      
       if (existingItem) {
-        return prevItems.map((i) =>
+        newItems = prevItems.map((i) =>
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         )
+      } else {
+        newItems = [...prevItems, { ...item, quantity: 1 }]
       }
-      return [...prevItems, { ...item, quantity: 1 }]
+      
+      // Sync to DB for logged-in users
+      syncToDatabase(newItems)
+      
+      return newItems
     })
   }
 
   const removeItem = (id: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id))
+    setItems((prevItems) => {
+      const newItems = prevItems.filter((item) => item.id !== id)
+      syncToDatabase(newItems)
+      return newItems
+    })
   }
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -60,15 +133,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem(id)
       return
     }
-    setItems((prevItems) =>
-      prevItems.map((item) =>
+    setItems((prevItems) => {
+      const newItems = prevItems.map((item) =>
         item.id === id ? { ...item, quantity } : item
       )
-    )
+      syncToDatabase(newItems)
+      return newItems
+    })
   }
 
   const clearCart = () => {
     setItems([])
+    syncToDatabase([])
+  }
+
+  const syncWithDB = async () => {
+    if (session?.user) {
+      await syncToDatabase(items)
+    }
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -84,6 +166,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        syncWithDB,
       }}
     >
       {children}

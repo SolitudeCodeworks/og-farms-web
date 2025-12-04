@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Search, Filter, X, ChevronDown, ShoppingCart } from "lucide-react"
-import { PRODUCT_CATEGORIES, STRAIN_TYPES, PRICE_RANGES, SORT_OPTIONS } from "@/lib/product-constants"
+import { PRODUCT_CATEGORIES, SUBCATEGORIES, STRAIN_TYPES, PRICE_RANGES, SORT_OPTIONS } from "@/lib/product-constants"
 
 interface Product {
   id: string
@@ -61,6 +61,7 @@ export default function ProductsPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("")
+  const [selectedSubcategory, setSelectedSubcategory] = useState("")
   const [selectedStrain, setSelectedStrain] = useState("")
   const [selectedPriceRange, setSelectedPriceRange] = useState("")
   const [sortBy, setSortBy] = useState("newest")
@@ -83,7 +84,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     filterAndSortProducts()
-  }, [products, searchTerm, selectedCategory, selectedStrain, selectedPriceRange, sortBy])
+  }, [products, searchTerm, selectedCategory, selectedSubcategory, selectedStrain, selectedPriceRange, sortBy])
 
   useEffect(() => {
     // Intersection Observer for infinite scroll
@@ -134,6 +135,13 @@ export default function ProductsPage() {
     if (selectedCategory) {
       filtered = filtered.filter(product => 
         product.category.toLowerCase() === selectedCategory.toLowerCase()
+      )
+    }
+
+    // Subcategory (Growing Method) filter
+    if (selectedSubcategory) {
+      filtered = filtered.filter(product => 
+        product.subcategory?.toLowerCase() === selectedSubcategory.toLowerCase()
       )
     }
 
@@ -305,6 +313,7 @@ export default function ProductsPage() {
   const clearFilters = () => {
     setSearchTerm("")
     setSelectedCategory("")
+    setSelectedSubcategory("")
     setSelectedStrain("")
     setSelectedPriceRange("")
     setSortBy("newest")
@@ -313,6 +322,7 @@ export default function ProductsPage() {
   const activeFiltersCount = [
     searchTerm,
     selectedCategory,
+    selectedSubcategory,
     selectedStrain,
     selectedPriceRange,
   ].filter(Boolean).length
@@ -391,7 +401,7 @@ export default function ProductsPage() {
 
           {/* Expandable Filters */}
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-zinc-800 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-4 pt-4 border-t border-zinc-800 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Category Filter */}
               <div>
                 <label className="block text-sm font-bold text-white mb-2">Category</label>
@@ -404,6 +414,23 @@ export default function ProductsPage() {
                   {PRODUCT_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Growing Method Filter */}
+              <div>
+                <label className="block text-sm font-bold text-white mb-2">Growing Method</label>
+                <select
+                  value={selectedSubcategory}
+                  onChange={(e) => setSelectedSubcategory(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+                >
+                  <option value="">All Methods</option>
+                  {SUBCATEGORIES.map((sub) => (
+                    <option key={sub.value} value={sub.value}>
+                      {sub.label}
                     </option>
                   ))}
                 </select>
@@ -550,12 +577,12 @@ export default function ProductsPage() {
                     <div className="flex flex-wrap gap-2 mb-3">
                       {product.thcContent && parseFloat(product.thcContent) > 0 && (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
-                          THC: {product.thcContent}%
+                          THC: {product.thcContent}{product.thcContent.toLowerCase().includes('mg') ? '' : '%'}
                         </span>
                       )}
                       {product.cbdContent && parseFloat(product.cbdContent) > 0 && (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded">
-                          CBD: {product.cbdContent}%
+                          CBD: {product.cbdContent}{product.cbdContent.toLowerCase().includes('mg') ? '' : '%'}
                         </span>
                       )}
                       {product.strain && product.strain !== 'n/a' && (

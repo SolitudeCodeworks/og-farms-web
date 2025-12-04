@@ -156,7 +156,7 @@ export function ProductCard({
                        border: '1px solid rgba(74, 222, 128, 0.4)',
                        color: '#4ade80',
                      }}>
-                  THC {thcContent}%
+                  THC: {thcContent}{String(thcContent).toLowerCase().includes('mg') ? '' : '%'}
                 </div>
               )}
               {cbdContent && cbdContent > 0 && (
@@ -166,7 +166,7 @@ export function ProductCard({
                        border: '1px solid rgba(74, 222, 128, 0.4)',
                        color: '#4ade80',
                      }}>
-                  CBD {cbdContent}%
+                  CBD: {cbdContent}{String(cbdContent).toLowerCase().includes('mg') ? '' : '%'}
                 </div>
               )}
               {strain && strain !== 'n/a' && (

@@ -1,95 +1,16 @@
 "use client"
 
-import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useCart } from '@/contexts/cart-context'
 import { formatPrice } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 
-interface GuestCartItem {
-  productId: string
-  productName: string
-  productImage: string
-  productPrice: number
-  quantity: number
-  ageRestricted: boolean
-}
-
-interface DbCartItem {
-  id: string
-  productId: string
-  quantity: number
-  product: {
-    id: string
-    name: string
-    price: number
-    images: string[]
-    category: string
-  }
-}
-
 export function CartDropdown() {
   const { data: session } = useSession()
-  const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
-  const [dbCart, setDbCart] = useState<DbCartItem[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const updateCart = async () => {
-      setLoading(true)
-      if (session) {
-        // Fetch from database for logged-in users
-        try {
-          const response = await fetch('/api/cart')
-          if (response.ok) {
-            const data = await response.json()
-            setDbCart(data.items || [])
-          }
-        } catch (error) {
-          console.error('Error fetching cart:', error)
-        }
-      } else {
-        // Load from localStorage for guests
-        const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-        setGuestCart(cart)
-      }
-      setLoading(false)
-    }
-
-    updateCart()
-    window.addEventListener('cartUpdated', updateCart)
-    
-    return () => window.removeEventListener('cartUpdated', updateCart)
-  }, [session])
-
-  const removeGuestItem = (productId: string) => {
-    const updatedCart = guestCart.filter(item => item.productId !== productId)
-    setGuestCart(updatedCart)
-    localStorage.setItem('guestCart', JSON.stringify(updatedCart))
-    window.dispatchEvent(new Event('cartUpdated'))
-  }
-
-  const removeDbItem = async (cartItemId: string) => {
-    try {
-      const response = await fetch('/api/cart', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartItemId })
-      })
-      
-      if (response.ok) {
-        window.dispatchEvent(new Event('cartUpdated'))
-      }
-    } catch (error) {
-      console.error('Error removing item:', error)
-    }
-  }
-
-  const items = session ? dbCart : guestCart
-  const totalPrice = session 
-    ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
-    : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
+  const { items, removeItem, totalPrice } = useCart()
+  const loading = false
 
   if (loading) {
     return (
@@ -128,18 +49,9 @@ export function CartDropdown() {
   return (
     <div className="w-80 max-h-96 overflow-y-auto">
       <div className="p-4 space-y-4">
-        {items.map((item) => {
-          const isGuest = 'productName' in item
-          const itemId = isGuest ? (item as GuestCartItem).productId : (item as DbCartItem).id
-          const itemImage = isGuest ? (item as GuestCartItem).productImage : (item as DbCartItem).product.images[0]
-          const itemName = isGuest ? (item as GuestCartItem).productName : (item as DbCartItem).product.name
-          const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as DbCartItem).product.price
-          const itemCategory = isGuest ? '' : (item as DbCartItem).product.category
-          const itemQuantity = item.quantity
-
-          return (
+        {items.map((item) => (
             <div
-              key={itemId}
+              key={item.id}
               className="flex gap-3 p-3 rounded-lg"
               style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.3)',
@@ -148,30 +60,29 @@ export function CartDropdown() {
             >
               <div className="relative w-16 h-16 rounded overflow-hidden shrink-0">
                 <Image
-                  src={itemImage}
-                  alt={itemName}
+                  src={item.image}
+                  alt={item.name}
                   fill
                   className="object-cover"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-white truncate">{itemName}</h4>
-                {itemCategory && <p className="text-xs text-gray-400">{itemCategory}</p>}
+                <h4 className="text-sm font-bold text-white truncate">{item.name}</h4>
+                {item.category && <p className="text-xs text-gray-400">{item.category}</p>}
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-sm font-bold text-primary">
-                    {formatPrice(itemPrice)} x {itemQuantity}
+                    {formatPrice(item.price)} x {item.quantity}
                   </span>
                 </div>
               </div>
               <button
-                onClick={() => session ? removeDbItem(itemId) : removeGuestItem(itemId)}
+                onClick={() => removeItem(item.id)}
                 className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-          )
-        })}
+          ))}
       </div>
 
       <div

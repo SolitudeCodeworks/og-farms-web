@@ -1,13 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Store } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
-export default function NewStorePage() {
+export default function EditStorePage() {
   const router = useRouter()
+  const params = useParams()
+  const storeId = params.storeId as string
+
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [error, setError] = useState("")
   
   const [formData, setFormData] = useState({
@@ -32,14 +36,52 @@ export default function NewStorePage() {
     },
   })
 
+  useEffect(() => {
+    loadStore()
+  }, [storeId])
+
+  const loadStore = async () => {
+    try {
+      const response = await fetch(`/api/admin/stores/${storeId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setFormData({
+          name: data.store.name,
+          slug: data.store.slug,
+          address: data.store.address,
+          city: data.store.city,
+          state: data.store.state,
+          zipCode: data.store.zipCode,
+          phone: data.store.phone,
+          email: data.store.email || "",
+          allowsPickup: data.store.allowsPickup,
+          isActive: data.store.isActive,
+          openingHours: data.store.openingHours || {
+            monday: "",
+            tuesday: "",
+            wednesday: "",
+            thursday: "",
+            friday: "",
+            saturday: "",
+            sunday: "",
+          },
+        })
+      }
+    } catch (error) {
+      console.error("Error loading store:", error)
+    } finally {
+      setFetching(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      const response = await fetch("/api/admin/stores", {
-        method: "POST",
+      const response = await fetch(`/api/admin/stores/${storeId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       })
@@ -48,7 +90,7 @@ export default function NewStorePage() {
         router.push("/admin/stores")
       } else {
         const data = await response.json()
-        setError(data.error || "Failed to create store")
+        setError(data.error || "Failed to update store")
       }
     } catch (error) {
       setError("Something went wrong. Please try again.")
@@ -65,14 +107,11 @@ export default function NewStorePage() {
     }))
   }
 
-  // Auto-generate slug from name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    setFormData(prev => ({ ...prev, name, slug }))
+    setFormData(prev => ({ ...prev, name }))
   }
 
-  // Handle opening hours change
   const handleHoursChange = (day: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -81,6 +120,21 @@ export default function NewStorePage() {
         [day]: value
       }
     }))
+  }
+
+  if (fetching) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <img 
+            src="/images/weed-icon.png" 
+            alt="Loading"
+            className="w-16 h-16 animate-spin"
+          />
+          <p className="text-white text-lg">Loading store...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -94,8 +148,8 @@ export default function NewStorePage() {
           <ArrowLeft className="w-5 h-5 text-white" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Add New Store</h1>
-          <p className="text-gray-400">Create a new store location</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Edit Store</h1>
+          <p className="text-gray-400">Update store information</p>
         </div>
       </div>
 
@@ -124,7 +178,7 @@ export default function NewStorePage() {
             />
           </div>
 
-          {/* Slug (auto-generated) */}
+          {/* Slug */}
           <div>
             <label className="block text-sm font-bold text-white mb-2">
               URL Slug *
@@ -138,7 +192,6 @@ export default function NewStorePage() {
               placeholder="og-farms-cape-town"
               className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
             />
-            <p className="text-xs text-gray-400 mt-1">Auto-generated from store name</p>
           </div>
 
           {/* Address */}
@@ -175,7 +228,7 @@ export default function NewStorePage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-white mb-2">
-                Province *
+                State/Province *
               </label>
               <input
                 type="text"
@@ -293,7 +346,7 @@ export default function NewStorePage() {
                 color: '#000',
               }}
             >
-              {loading ? "Creating..." : "Create Store"}
+              {loading ? "Updating..." : "Update Store"}
             </button>
             <Link
               href="/admin/stores"

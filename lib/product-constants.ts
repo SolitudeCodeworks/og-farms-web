@@ -21,11 +21,11 @@ export const STRAIN_TYPES = [
 ] as const
 
 export const SUBCATEGORIES = [
-  { value: "no", label: "No" },
-  { value: "medical", label: "Medical" },
-  { value: "promo_indoor", label: "Promo Indoor" },
+  { value: "no", label: "Not Specified" },
+  { value: "medical", label: "Medical Grade Indoor" },
+  { value: "promo_indoor", label: "Primo (Premium) Indoor" },
   { value: "indoor", label: "Indoor" },
-  { value: "greenhouse", label: "Green House" },
+  { value: "greenhouse", label: "Greenhouse" },
   { value: "outdoor", label: "Outdoor" },
 ] as const
 
