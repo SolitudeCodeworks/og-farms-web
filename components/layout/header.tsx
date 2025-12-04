@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingCart, User, Menu, X, Search, LogOut, Package } from "lucide-react"
+import { ShoppingCart, Heart, User, Menu, X, Search, LogOut, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CartDropdown } from "@/components/cart/cart-dropdown"
 import { useState, useEffect } from "react"
@@ -38,7 +38,6 @@ export function Header() {
     { name: "Shop", href: "/shop" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
-    { name: "Favourites", href: "/favourites" },
   ]
 
   return (
@@ -63,6 +62,14 @@ export function Header() {
 
         {/* Mobile actions */}
         <div className="flex items-center gap-2 lg:hidden">
+          {/* Mobile Favourites */}
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/favourites">
+              <Heart className="h-5 w-5" />
+              <span className="sr-only">Favourites</span>
+            </Link>
+          </Button>
+
           {/* Mobile Cart */}
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
@@ -259,6 +266,15 @@ export function Header() {
               </Button>
             </div>
           )}
+          
+          {/* Favourites Icon */}
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/favourites">
+              <Heart className="h-5 w-5" />
+              <span className="sr-only">Favourites</span>
+            </Link>
+          </Button>
+
           <div 
             className="relative"
             onMouseEnter={() => setCartOpen(true)}
