@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       description,
       price,
       category,
+      subcategory,
       thcContent,
       cbdContent,
       strain,
@@ -63,13 +64,32 @@ export async function POST(request: Request) {
       discountEndDate
     } = data
 
+    // Check if slug already exists and add a number if needed
+    let finalSlug = slug
+    let existingProduct = await prisma.product.findUnique({
+      where: { slug: finalSlug }
+    })
+
+    if (existingProduct) {
+      let counter = 1
+      let newSlug = `${slug}-${counter}`
+      
+      while (await prisma.product.findUnique({ where: { slug: newSlug } })) {
+        counter++
+        newSlug = `${slug}-${counter}`
+      }
+      
+      finalSlug = newSlug
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
-        slug,
+        slug: finalSlug,
         description,
         price,
         category,
+        subcategory: subcategory && subcategory.trim() !== "" ? subcategory : null,
         thcContent: thcContent && thcContent.trim() !== "" ? thcContent : null,
         cbdContent: cbdContent && cbdContent.trim() !== "" ? cbdContent : null,
         strain: strain && strain.trim() !== "" ? strain : null,
@@ -84,10 +104,19 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ product }, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating product:", error)
+    
+    // Handle unique constraint violation (slug conflict)
+    if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+      return NextResponse.json(
+        { error: "A product with this URL slug already exists. Please use a different name or manually edit the slug." },
+        { status: 409 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to create product. Please try again." },
       { status: 500 }
     )
   }

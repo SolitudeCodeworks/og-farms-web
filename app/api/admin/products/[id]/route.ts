@@ -71,11 +71,30 @@ export async function PUT(
       ageRestricted
     } = data
 
+    // Check if slug conflicts with another product (not this one)
+    let finalSlug = slug
+    const existingProduct = await prisma.product.findUnique({
+      where: { slug: finalSlug }
+    })
+
+    // If slug exists and it's not the current product, add a number
+    if (existingProduct && existingProduct.id !== id) {
+      let counter = 1
+      let newSlug = `${slug}-${counter}`
+      
+      while (await prisma.product.findUnique({ where: { slug: newSlug } })) {
+        counter++
+        newSlug = `${slug}-${counter}`
+      }
+      
+      finalSlug = newSlug
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: {
         name,
-        slug,
+        slug: finalSlug,
         description,
         price,
         category,
@@ -90,10 +109,19 @@ export async function PUT(
     })
 
     return NextResponse.json({ product })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating product:", error)
+    
+    // Handle unique constraint violation (slug conflict)
+    if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+      return NextResponse.json(
+        { error: "A product with this URL slug already exists. Please use a different name or manually edit the slug." },
+        { status: 409 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to update product. Please try again." },
       { status: 500 }
     )
   }
