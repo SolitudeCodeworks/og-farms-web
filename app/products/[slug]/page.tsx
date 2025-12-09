@@ -266,18 +266,7 @@ export default function ProductDetailPage() {
     setAddingToCart(true)
 
     try {
-      // Add to cart context (updates UI immediately)
-      for (let i = 0; i < quantity; i++) {
-        addItem({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.images[0] || '/products/placeholder.jpg',
-          category: product.category,
-        })
-      }
-
-      // For logged-in users, also sync to database
+      // For logged-in users, check database first before adding to context
       if (session) {
         const response = await fetch("/api/cart", {
           method: "POST",
@@ -297,10 +286,26 @@ export default function ProductDetailPage() {
             setShowAgeModal(true)
             return
           } else {
-            alert(data.error || "Failed to add to cart")
+            // Show error toast instead of alert
+            setShowAddedToast(false)
+            setTimeout(() => {
+              setAgeModalMessage(data.error || "Failed to add to cart")
+              setShowAgeModal(true)
+            }, 100)
             return
           }
         }
+      }
+
+      // Add to cart context (updates UI immediately)
+      for (let i = 0; i < quantity; i++) {
+        addItem({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.images[0] || '/products/placeholder.jpg',
+          category: product.category,
+        })
       }
 
       setQuantity(1) // Reset quantity
@@ -308,7 +313,8 @@ export default function ProductDetailPage() {
       setTimeout(() => setShowAddedToast(false), 3000)
     } catch (error) {
       console.error("Error adding to cart:", error)
-      alert("Failed to add to cart")
+      setAgeModalMessage("Failed to add to cart. Please try again.")
+      setShowAgeModal(true)
     } finally {
       setAddingToCart(false)
     }

@@ -250,16 +250,7 @@ export default function ProductsPage() {
     setAddingToCart(product.id)
     
     try {
-      // Add to cart context immediately (updates UI)
-      addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.images?.[0] || '/products/placeholder.jpg',
-        category: product.category,
-      })
-
-      // For logged-in users, also sync to database
+      // For logged-in users, check database first
       if (session) {
         const response = await fetch('/api/cart', {
           method: 'POST',
@@ -276,10 +267,20 @@ export default function ProductsPage() {
 
         if (!response.ok) {
           // Show error toast
-          setToast({ message: data.error || 'Failed to sync to database', type: 'error' })
+          setToast({ message: data.error || 'Failed to add to cart', type: 'error' })
           setTimeout(() => setToast(null), 4000)
+          return
         }
       }
+
+      // Add to cart context (updates UI)
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || '/products/placeholder.jpg',
+        category: product.category,
+      })
 
       // Show success toast
       setToast({ message: `${product.name} added to stash!`, type: 'success' })

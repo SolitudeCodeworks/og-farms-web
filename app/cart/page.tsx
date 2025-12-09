@@ -36,6 +36,8 @@ export default function CartPage() {
   const [dbCart, setDbCart] = useState<DbCartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [deliveryFee, setDeliveryFee] = useState(0)
+  const [ageVerified, setAgeVerified] = useState(true)
+  const [hasAgeRestrictedItems, setHasAgeRestrictedItems] = useState(false)
 
   useEffect(() => {
     const loadCart = async () => {
@@ -47,6 +49,13 @@ export default function CartPage() {
             const data = await response.json()
             setDbCart(data.items || [])
           }
+          
+          // Check age verification
+          const userResponse = await fetch('/api/account')
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            setAgeVerified(!!userData.dateOfBirth)
+          }
         } catch (error) {
           console.error('Error fetching cart:', error)
         }
@@ -54,12 +63,24 @@ export default function CartPage() {
         // Load guest cart from localStorage
         const cart = JSON.parse(localStorage.getItem('guestCart') || '[]')
         setGuestCart(cart)
+        
+        // Check if guest cart has age-restricted items
+        const hasRestricted = cart.some((item: GuestCartItem) => item.ageRestricted)
+        setHasAgeRestrictedItems(hasRestricted)
       }
       await loadDeliveryFee()
       setLoading(false)
     }
 
     loadCart()
+
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      loadCart()
+    }
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
   }, [session])
 
   const loadDeliveryFee = async () => {
@@ -162,6 +183,60 @@ export default function CartPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold text-foreground mb-8">Shopping Cart</h1>
+
+      {/* Age Verification Warning */}
+      {session && !ageVerified && (
+        <div className="mb-6 p-4 rounded-lg border-2 border-orange-500 bg-orange-500/10">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="font-bold text-orange-500 mb-1">Age Verification Required</h3>
+              <p className="text-sm text-orange-400 mb-3">
+                We detected that you tried to add age-restricted items (18+) to your cart. These items cannot be added until you verify your age.
+              </p>
+              <Link 
+                href="/account"
+                className="inline-block px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#000',
+                }}
+              >
+                Verify Age in Profile →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Age Restricted Warning */}
+      {!session && hasAgeRestrictedItems && (
+        <div className="mb-6 p-4 rounded-lg border-2 border-orange-500 bg-orange-500/10">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="font-bold text-orange-500 mb-1">Login Required for Age-Restricted Items</h3>
+              <p className="text-sm text-orange-400 mb-3">
+                Your cart contains age-restricted items (18+). Please sign in and verify your age to proceed with checkout.
+              </p>
+              <Link 
+                href="/login"
+                className="inline-block px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#000',
+                }}
+              >
+                Sign In →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Cart Items */}

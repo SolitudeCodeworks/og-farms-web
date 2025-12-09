@@ -48,6 +48,8 @@ export function ProductCard({
     : 0
   
   const [adding, setAdding] = useState(false)
+  const [showError, setShowError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   const handleAddToCart = async () => {
     // Block 18+ products for guests - redirect to login
@@ -59,16 +61,7 @@ export function ProductCard({
     setAdding(true)
 
     try {
-      // Add to cart context immediately (updates UI)
-      addItem({
-        id,
-        name,
-        price,
-        image,
-        category,
-      })
-
-      // For logged-in users, also sync to database
+      // For logged-in users, check database first
       if (session) {
         const response = await fetch("/api/cart", {
           method: "POST",
@@ -81,11 +74,26 @@ export function ProductCard({
 
         if (!response.ok) {
           const data = await response.json()
-          console.error("Failed to sync to database:", data.error)
+          setErrorMessage(data.error || "Failed to add to cart")
+          setShowError(true)
+          setTimeout(() => setShowError(false), 4000)
+          return
         }
       }
+
+      // Add to cart context (updates UI)
+      addItem({
+        id,
+        name,
+        price,
+        image,
+        category,
+      })
     } catch (error) {
       console.error("Error adding to cart:", error)
+      setErrorMessage("Failed to add to cart. Please try again.")
+      setShowError(true)
+      setTimeout(() => setShowError(false), 4000)
     } finally {
       setTimeout(() => setAdding(false), 1000)
     }
@@ -219,6 +227,30 @@ export function ProductCard({
           {stock === 0 ? "Sold Out" : adding ? "Adding..." : "Add to Stash"}
         </button>
       </div>
+
+      {/* Error Toast */}
+      {showError && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-md animate-in slide-in-from-bottom-5">
+          <div className="p-4 rounded-lg border-2 border-red-500 bg-red-500/10 backdrop-blur-md shadow-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setShowError(false)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
