@@ -106,7 +106,15 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
     
     for (const item of items) {
       const isGuest = 'productName' in item
-      const productId = isGuest ? (item as GuestCartItem).productId : (item as any).productId
+      // For guest cart: use productId, for DB cart: use product.id
+      const productId = isGuest 
+        ? (item as GuestCartItem).productId 
+        : (item as any).product?.id || (item as any).productId
+      
+      if (!productId) {
+        console.error('No product ID found for item:', item)
+        continue
+      }
       
       try {
         const response = await fetch(`/api/stores/${storeId}/stock/${productId}`)
@@ -497,8 +505,13 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                       ) : Object.keys(storeStock).length > 0 ? (
                         items.map((item) => {
                           const isGuest = 'productName' in item
-                          const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
-                          const productName = isGuest ? (item as GuestCartItem).productName : (item as any).name
+                          // For guest cart: use productId, for DB cart: use product.id
+                          const productId = isGuest 
+                            ? (item as GuestCartItem).productId 
+                            : (item as any).product?.id || (item as any).productId
+                          const productName = isGuest 
+                            ? (item as GuestCartItem).productName 
+                            : (item as any).product?.name || (item as any).name
                           const stock = storeStock[productId] || 0
                           const hasStock = stock >= item.quantity
                           
