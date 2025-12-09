@@ -59,10 +59,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // Guest: Load from localStorage
-        const savedCart = localStorage.getItem('cart')
+        // Guest: Load from guestCart localStorage
+        const savedCart = localStorage.getItem('guestCart')
         if (savedCart) {
-          setItems(JSON.parse(savedCart))
+          // Convert guestCart format to CartItem format
+          const guestItems = JSON.parse(savedCart).map((item: any) => ({
+            id: item.productId,
+            name: item.productName,
+            price: item.productPrice,
+            image: item.productImage,
+            quantity: item.quantity,
+            category: item.category || 'FLOWER',
+          }))
+          setItems(guestItems)
         }
       }
       setIsInitialized(true)
@@ -74,11 +83,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Save to localStorage whenever cart changes (after initialization)
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem('cart', JSON.stringify(items))
+      if (session?.user) {
+        // Logged in: save to 'cart'
+        localStorage.setItem('cart', JSON.stringify(items))
+      } else {
+        // Guest: save to 'guestCart' in the format expected
+        const guestCart = items.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          productImage: item.image,
+          productPrice: item.price,
+          quantity: item.quantity,
+          category: item.category,
+          ageRestricted: false, // Default, would need to track this
+        }))
+        localStorage.setItem('guestCart', JSON.stringify(guestCart))
+      }
       // Dispatch event to update cart count in header and dropdown
       window.dispatchEvent(new Event('cartUpdated'))
     }
-  }, [items, isInitialized])
+  }, [items, isInitialized, session])
 
   // Sync to DB for logged-in users
   const syncToDatabase = async (updatedItems: CartItem[]) => {

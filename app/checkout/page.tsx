@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useCart } from '@/contexts/cart-context'
 import { formatPrice } from '@/lib/utils'
-import { PaystackButton } from '@/components/checkout/paystack-button'
+import { PayFastButton } from '@/components/checkout/payfast-button'
 import { AddressAutocomplete } from '@/components/checkout/address-autocomplete'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -22,7 +22,7 @@ interface GuestCartItem {
 export default function CheckoutPage() {
   // Feature flags
 const DELIVERY_ENABLED = process.env.NEXT_PUBLIC_DELIVERY_ENABLED === 'true'
-const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
+const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   
   const { data: session } = useSession()
   const { items: loggedInItems, totalPrice: loggedInTotal, clearCart } = useCart()
@@ -45,7 +45,7 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
   const [storeStock, setStoreStock] = useState<Record<string, number>>({})
   const [checkingStock, setCheckingStock] = useState(false)
   const [deliveryFee, setDeliveryFee] = useState(0)
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYSTACK_ENABLED ? 'online' : 'cash')
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYFAST_ENABLED ? 'online' : 'cash')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -529,16 +529,16 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => PAYSTACK_ENABLED && setPaymentMethod('online')}
-                        disabled={!PAYSTACK_ENABLED}
+                        onClick={() => PAYFAST_ENABLED && setPaymentMethod('online')}
+                        disabled={!PAYFAST_ENABLED}
                         className={`w-full py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
                           paymentMethod === 'online' ? 'scale-105' : ''
-                        } ${!PAYSTACK_ENABLED ? 'cursor-not-allowed opacity-60' : ''}`}
+                        } ${!PAYFAST_ENABLED ? 'cursor-not-allowed opacity-60' : ''}`}
                         style={{
                           background: paymentMethod === 'online' 
                             ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
-                            : !PAYSTACK_ENABLED ? '#3f3f46' : '#f3f4f6',
-                          color: paymentMethod === 'online' ? '#000' : !PAYSTACK_ENABLED ? '#a1a1aa' : '#6b7280',
+                            : !PAYFAST_ENABLED ? '#3f3f46' : '#f3f4f6',
+                          color: paymentMethod === 'online' ? '#000' : !PAYFAST_ENABLED ? '#a1a1aa' : '#6b7280',
                           boxShadow: paymentMethod === 'online' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
                         }}
                       >
@@ -547,7 +547,7 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
                         </svg>
                         Pay Online
                       </button>
-                      {!PAYSTACK_ENABLED && (
+                      {!PAYFAST_ENABLED && (
                         <div className="absolute -bottom-8 left-0 right-0">
                           <p className="text-xs text-orange-400 text-center font-medium">
                             Coming Soon
@@ -577,7 +577,7 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
                   </div>
                   
                   {/* Payment Method Notice */}
-                  {!PAYSTACK_ENABLED && (
+                  {!PAYFAST_ENABLED && (
                     <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 mt-0.5">
@@ -830,11 +830,29 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
                     )
                   }
                   
-                  // Online payment with Paystack
+                  // Online payment with PayFast
+                  const shippingCost = deliveryMethod === 'delivery' ? deliveryFee : 0
+                  const store = stores.find(s => s.id === selectedStore)
+                  
                   return (
-                    <PaystackButton
+                    <PayFastButton
                       email={email}
-                      amount={totalPrice}
+                      name={name}
+                      phone={phone}
+                      amount={totalPrice + shippingCost}
+                      deliveryMethod={deliveryMethod}
+                      storeId={selectedStore}
+                      storeName={store?.name}
+                      address={deliveryMethod === 'delivery' ? {
+                        street,
+                        suburb,
+                        city,
+                        province,
+                        postalCode
+                      } : undefined}
+                      items={items}
+                      subtotal={totalPrice}
+                      shippingCost={shippingCost}
                       onSuccess={handleSuccess}
                       onClose={handleClose}
                     />
@@ -865,7 +883,7 @@ const PAYSTACK_ENABLED = process.env.NEXT_PUBLIC_PAYSTACK_ENABLED === 'true'
               <p className="text-xs text-gray-500 text-center mt-4">
                 {paymentMethod === 'cash' && deliveryMethod === 'pickup' 
                   ? 'Pay with cash when you collect your order at the store' 
-                  : 'Secure payment powered by Paystack'}
+                  : 'Secure payment powered by PayFast'}
               </p>
             </div>
           </div>

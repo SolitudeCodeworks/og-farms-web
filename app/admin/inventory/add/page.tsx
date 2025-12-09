@@ -15,6 +15,8 @@ interface Product {
   id: string
   name: string
   images: string[]
+  strain: string | null
+  subcategory: string | null
 }
 
 export default function AddStockPage() {
@@ -205,11 +207,18 @@ export default function AddStockPage() {
               className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
             >
               <option value="">Choose a product...</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
+              {products.map((product) => {
+                const details = []
+                if (product.strain) details.push(product.strain)
+                if (product.subcategory) details.push(product.subcategory)
+                const detailsText = details.length > 0 ? ` (${details.join(', ')})` : ''
+                
+                return (
+                  <option key={product.id} value={product.id}>
+                    {product.name}{detailsText}
+                  </option>
+                )
+              })}
             </select>
           </div>
 

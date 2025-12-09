@@ -19,8 +19,9 @@ export function Header() {
   // Load cart count from localStorage (fast, no DB calls)
   useEffect(() => {
     const updateCartCount = () => {
-      // Always read from localStorage for fast display
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+      // Read from appropriate storage based on login status
+      const storageKey = session ? 'cart' : 'guestCart'
+      const cart = JSON.parse(localStorage.getItem(storageKey) || '[]')
       const count = cart.reduce((sum: number, item: any) => sum + item.quantity, 0)
       setCartCount(count)
     }
