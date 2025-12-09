@@ -819,7 +819,10 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                 // Check if all items have sufficient stock for pickup
                 const hasInsufficientStock = deliveryMethod === 'pickup' && selectedStore && Object.keys(storeStock).length > 0 && items.some((item) => {
                   const isGuest = 'productName' in item
-                  const productId = isGuest ? (item as GuestCartItem).productId : (item as any).id
+                  // For guest cart: use productId, for DB cart: use product.id
+                  const productId = isGuest 
+                    ? (item as GuestCartItem).productId 
+                    : (item as any).product?.id || (item as any).productId
                   const stock = storeStock[productId] || 0
                   return stock < item.quantity
                 })
