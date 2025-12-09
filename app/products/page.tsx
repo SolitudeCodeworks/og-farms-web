@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { useCart } from "@/contexts/cart-context"
 import { Search, Filter, X, ChevronDown, ShoppingCart } from "lucide-react"
 import { PRODUCT_CATEGORIES, SUBCATEGORIES, STRAIN_TYPES, PRICE_RANGES, SORT_OPTIONS } from "@/lib/product-constants"
 
@@ -49,6 +50,7 @@ const ProductSkeleton = () => (
 export default function ProductsPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { addItem } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -248,8 +250,17 @@ export default function ProductsPage() {
     setAddingToCart(product.id)
     
     try {
+      // Add to cart context immediately (updates UI)
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || '/products/placeholder.jpg',
+        category: product.category,
+      })
+
+      // For logged-in users, also sync to database
       if (session) {
-        // Logged-in user: Use API to add to database
         const response = await fetch('/api/cart', {
           method: 'POST',
           headers: {
@@ -263,44 +274,16 @@ export default function ProductsPage() {
 
         const data = await response.json()
 
-        if (response.ok) {
-          // Trigger cart update event
-          window.dispatchEvent(new Event('cartUpdated'))
-          
-          // Show success toast
-          setToast({ message: `${product.name} added to stash!`, type: 'success' })
-          setTimeout(() => setToast(null), 3000)
-        } else {
+        if (!response.ok) {
           // Show error toast
-          setToast({ message: data.error || 'Failed to add to cart', type: 'error' })
+          setToast({ message: data.error || 'Failed to sync to database', type: 'error' })
           setTimeout(() => setToast(null), 4000)
         }
-      } else {
-        // Guest user: Use localStorage
-        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-        
-        const existingIndex = guestCart.findIndex((item: any) => item.productId === product.id)
-        
-        if (existingIndex >= 0) {
-          guestCart[existingIndex].quantity += 1
-        } else {
-          guestCart.push({
-            productId: product.id,
-            productName: product.name,
-            productImage: product.images[0] || '/products/placeholder.svg',
-            productPrice: product.price,
-            quantity: 1,
-            ageRestricted: product.ageRestricted
-          })
-        }
-        
-        localStorage.setItem('guestCart', JSON.stringify(guestCart))
-        window.dispatchEvent(new Event('cartUpdated'))
-        
-        // Show success toast
-        setToast({ message: `${product.name} added to stash!`, type: 'success' })
-        setTimeout(() => setToast(null), 3000)
       }
+
+      // Show success toast
+      setToast({ message: `${product.name} added to stash!`, type: 'success' })
+      setTimeout(() => setToast(null), 3000)
     } catch (error) {
       console.error('Error adding to cart:', error)
       setToast({ message: 'Something went wrong. Please try again.', type: 'error' })

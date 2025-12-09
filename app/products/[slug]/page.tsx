@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { useCart } from "@/contexts/cart-context"
 import Link from "next/link"
 import { Star, StarHalf, ShoppingCart, Heart, ArrowLeft, Send, Trash2 } from "lucide-react"
 
@@ -78,6 +79,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { addItem } = useCart()
   const slug = params.slug as string
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -264,8 +266,19 @@ export default function ProductDetailPage() {
     setAddingToCart(true)
 
     try {
+      // Add to cart context (updates UI immediately)
+      for (let i = 0; i < quantity; i++) {
+        addItem({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.images[0] || '/products/placeholder.jpg',
+          category: product.category,
+        })
+      }
+
+      // For logged-in users, also sync to database
       if (session) {
-        // Logged-in user: Use API
         const response = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -275,54 +288,24 @@ export default function ProductDetailPage() {
           })
         })
 
-        if (response.ok) {
-          setQuantity(1) // Reset quantity
-          setShowAddedToast(true)
-          setTimeout(() => setShowAddedToast(false), 3000)
-          
-          // Dispatch event to update cart count
-          window.dispatchEvent(new Event('cartUpdated'))
-        } else {
+        if (!response.ok) {
           const data = await response.json()
           
           // Check if it's an age restriction error
           if (response.status === 403 && data.error) {
             setAgeModalMessage(data.error)
             setShowAgeModal(true)
+            return
           } else {
             alert(data.error || "Failed to add to cart")
+            return
           }
         }
-      } else {
-        // Guest user: Use localStorage
-        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-        
-        // Check if product already in cart
-        const existingIndex = guestCart.findIndex((item: any) => item.productId === product.id)
-        
-        if (existingIndex >= 0) {
-          // Update quantity
-          guestCart[existingIndex].quantity += quantity
-        } else {
-          // Add new item
-          guestCart.push({
-            productId: product.id,
-            productName: product.name,
-            productImage: product.images[0],
-            productPrice: product.price,
-            quantity: quantity,
-            ageRestricted: product.ageRestricted
-          })
-        }
-        
-        localStorage.setItem('guestCart', JSON.stringify(guestCart))
-        setQuantity(1) // Reset quantity
-        setShowAddedToast(true)
-        setTimeout(() => setShowAddedToast(false), 3000)
-        
-        // Dispatch event to update cart count
-        window.dispatchEvent(new Event('cartUpdated'))
       }
+
+      setQuantity(1) // Reset quantity
+      setShowAddedToast(true)
+      setTimeout(() => setShowAddedToast(false), 3000)
     } catch (error) {
       console.error("Error adding to cart:", error)
       alert("Failed to add to cart")

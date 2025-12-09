@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
+import { useCart } from "@/contexts/cart-context"
 import Link from "next/link"
 import Image from "next/image"
 import { ShoppingCart } from "lucide-react"
@@ -41,6 +42,7 @@ export function ProductCard({
   ageRestricted = false,
 }: ProductCardProps) {
   const { data: session } = useSession()
+  const { addItem } = useCart()
   const discount = compareAtPrice
     ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
     : 0
@@ -57,8 +59,17 @@ export function ProductCard({
     setAdding(true)
 
     try {
+      // Add to cart context immediately (updates UI)
+      addItem({
+        id,
+        name,
+        price,
+        image,
+        category,
+      })
+
+      // For logged-in users, also sync to database
       if (session) {
-        // Logged-in user: Use API to add to database
         const response = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -70,32 +81,8 @@ export function ProductCard({
 
         if (!response.ok) {
           const data = await response.json()
-          alert(data.error || "Failed to add to cart")
-        } else {
-          // Dispatch event to update cart count in header
-          window.dispatchEvent(new Event('cartUpdated'))
+          console.error("Failed to sync to database:", data.error)
         }
-      } else {
-        // Guest user: Use localStorage
-        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]')
-        
-        const existingIndex = guestCart.findIndex((item: any) => item.productId === id)
-        
-        if (existingIndex >= 0) {
-          guestCart[existingIndex].quantity += 1
-        } else {
-          guestCart.push({
-            productId: id,
-            productName: name,
-            productImage: image,
-            productPrice: price,
-            quantity: 1,
-            ageRestricted: ageRestricted
-          })
-        }
-        
-        localStorage.setItem('guestCart', JSON.stringify(guestCart))
-        window.dispatchEvent(new Event('cartUpdated'))
       }
     } catch (error) {
       console.error("Error adding to cart:", error)

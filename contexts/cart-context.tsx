@@ -137,8 +137,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         newItems = [...prevItems, { ...item, quantity: 1 }]
       }
       
-      // Sync to DB for logged-in users
-      syncToDatabase(newItems)
+      // Don't sync here - let the product pages handle DB sync
+      // This prevents duplicate API calls
       
       return newItems
     })
