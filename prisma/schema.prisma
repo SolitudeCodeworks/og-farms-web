@@ -13,21 +13,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String
-  role          UserRole  @default(CUSTOMER)
-  dateOfBirth   DateTime?
-  ageVerified   Boolean   @default(false)
-  verifiedAt    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  orders        Order[]
-  cart          CartItem[]
-  addresses     Address[]
-  reviews       Review[]
-  wishlist      WishlistItem[]
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  name                   String?
+  password               String
+  role                   UserRole  @default(CUSTOMER)
+  dateOfBirth            DateTime?
+  ageVerified            Boolean   @default(false)
+  verifiedAt             DateTime?
+  resetPasswordToken     String?   @unique
+  resetPasswordExpires   DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  orders                 Order[]
+  cart                   CartItem[]
+  addresses              Address[]
+  reviews                Review[]
+  wishlist               WishlistItem[]
 }
 
 model Product {
