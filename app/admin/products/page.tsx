@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { Package, Plus, Edit, Trash2 } from "lucide-react"
+import { Package, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Product {
   id: string
@@ -21,28 +21,59 @@ interface Product {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; product: Product | null }>({
     show: false,
     product: null
   })
   const [deleting, setDeleting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalProducts, setTotalProducts] = useState(0)
+  const itemsPerPage = 10
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+      setCurrentPage(1)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   useEffect(() => {
     loadProducts()
-  }, [])
+  }, [currentPage, debouncedSearch])
 
   const loadProducts = async () => {
+    if (initialLoading) {
+      setInitialLoading(true)
+    } else {
+      setSearchLoading(true)
+    }
+    
     try {
-      const response = await fetch("/api/admin/products")
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: debouncedSearch,
+      })
+      const response = await fetch(`/api/admin/products?${params}`)
       if (response.ok) {
         const data = await response.json()
         setProducts(data.products)
+        setTotalPages(data.totalPages)
+        setTotalProducts(data.total)
       }
     } catch (error) {
       console.error("Error loading products:", error)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setSearchLoading(false)
     }
   }
 
@@ -66,7 +97,47 @@ export default function ProductsPage() {
     }
   }
 
-  if (loading) {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }
+
+  // Skeleton loader component
+  const ProductRowSkeleton = () => (
+    <tr className="border-b border-zinc-800">
+      <td className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-16 rounded-lg bg-zinc-800 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-zinc-800 rounded animate-pulse w-3/4" />
+            <div className="h-3 bg-zinc-800 rounded animate-pulse w-1/2" />
+          </div>
+        </div>
+      </td>
+      <td className="p-4">
+        <div className="h-6 bg-zinc-800 rounded-full animate-pulse w-20" />
+      </td>
+      <td className="p-4">
+        <div className="h-6 bg-zinc-800 rounded animate-pulse w-16" />
+      </td>
+      <td className="p-4">
+        <div className="space-y-1">
+          <div className="h-4 bg-zinc-800 rounded animate-pulse w-16" />
+          <div className="h-4 bg-zinc-800 rounded animate-pulse w-16" />
+        </div>
+      </td>
+      <td className="p-4">
+        <div className="h-6 bg-zinc-800 rounded-full animate-pulse w-20" />
+      </td>
+      <td className="p-4">
+        <div className="flex items-center justify-end gap-2">
+          <div className="w-8 h-8 bg-zinc-800 rounded-lg animate-pulse" />
+          <div className="w-8 h-8 bg-zinc-800 rounded-lg animate-pulse" />
+        </div>
+      </td>
+    </tr>
+  )
+
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
@@ -84,14 +155,14 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Products</h1>
-          <p className="text-gray-400">Manage your product catalog</p>
+          <p className="text-gray-400">Manage your product catalog ({totalProducts} total)</p>
         </div>
         <Link
           href="/admin/products/new"
-          className="flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all hover:scale-105"
+          className="flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all hover:scale-105 w-fit"
           style={{
             background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
             color: '#000',
@@ -102,8 +173,42 @@ export default function ProductsPage() {
         </Link>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search products by name, category, or description..."
+          value={searchQuery}
+          onChange={handleSearch}
+          className="w-full pl-12 pr-4 py-3 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+        />
+      </div>
+
       {/* Products Table */}
-      {products.length === 0 ? (
+      {searchLoading ? (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  <th className="text-left p-4 text-sm font-bold text-gray-400 uppercase">Product</th>
+                  <th className="text-left p-4 text-sm font-bold text-gray-400 uppercase">Category</th>
+                  <th className="text-left p-4 text-sm font-bold text-gray-400 uppercase">Price</th>
+                  <th className="text-left p-4 text-sm font-bold text-gray-400 uppercase">THC/CBD</th>
+                  <th className="text-left p-4 text-sm font-bold text-gray-400 uppercase">Status</th>
+                  <th className="text-right p-4 text-sm font-bold text-gray-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: itemsPerPage }).map((_, i) => (
+                  <ProductRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : products.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center">
           <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">No products yet</h3>
@@ -218,6 +323,57 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-zinc-800">
+              <p className="text-sm text-gray-400">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalProducts)} of {totalProducts} products
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-primary text-black'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="text-gray-500 px-1">...</span>
+                    }
+                    return null
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
