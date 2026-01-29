@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { del } from "@vercel/blob"
+import { cache } from "@/lib/cache"
 
 export async function GET(
   request: Request,
@@ -107,6 +108,10 @@ export async function PUT(
         ageRestricted
       }
     })
+
+    // Invalidate all product and inventory cache entries
+    cache.invalidatePattern('^products:')
+    cache.invalidatePattern('^inventory:')
 
     return NextResponse.json({ product })
   } catch (error: any) {
@@ -213,6 +218,10 @@ export async function DELETE(
         console.error('Error deleting images from blob:', blobError)
       }
     }
+
+    // Invalidate all product and inventory cache entries
+    cache.invalidatePattern('^products:')
+    cache.invalidatePattern('^inventory:')
 
     return NextResponse.json({ success: true })
   } catch (error) {
