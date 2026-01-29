@@ -111,25 +111,49 @@ export async function POST(request: Request) {
       finalSlug = newSlug
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        slug: finalSlug,
-        description,
-        price,
-        category,
-        subcategory: subcategory && subcategory.trim() !== "" ? subcategory : null,
-        thcContent: thcContent && thcContent.trim() !== "" ? thcContent : null,
-        cbdContent: cbdContent && cbdContent.trim() !== "" ? cbdContent : null,
-        strain: strain && strain.trim() !== "" ? strain : null,
-        images,
-        featured: featured || false,
-        ageRestricted: ageRestricted !== undefined ? ageRestricted : true,
-        discountType: discountType && discountType.trim() !== "" ? discountType : null,
-        discountValue: discountValue && discountValue > 0 ? discountValue : null,
-        discountStartDate: discountStartDate ? new Date(discountStartDate) : null,
-        discountEndDate: discountEndDate ? new Date(discountEndDate) : null
+    // Create product and inventory records in a transaction
+    const product = await prisma.$transaction(async (tx) => {
+      // Create the product
+      const newProduct = await tx.product.create({
+        data: {
+          name,
+          slug: finalSlug,
+          description,
+          price,
+          category,
+          subcategory: subcategory && subcategory.trim() !== "" ? subcategory : null,
+          thcContent: thcContent && thcContent.trim() !== "" ? thcContent : null,
+          cbdContent: cbdContent && cbdContent.trim() !== "" ? cbdContent : null,
+          strain: strain && strain.trim() !== "" ? strain : null,
+          images,
+          featured: featured || false,
+          ageRestricted: ageRestricted !== undefined ? ageRestricted : true,
+          discountType: discountType && discountType.trim() !== "" ? discountType : null,
+          discountValue: discountValue && discountValue > 0 ? discountValue : null,
+          discountStartDate: discountStartDate ? new Date(discountStartDate) : null,
+          discountEndDate: discountEndDate ? new Date(discountEndDate) : null
+        }
+      })
+
+      // Get all active stores
+      const stores = await tx.store.findMany({
+        where: { isActive: true },
+        select: { id: true }
+      })
+
+      // Create inventory records for all stores with quantity 0
+      if (stores.length > 0) {
+        await tx.storeInventory.createMany({
+          data: stores.map(store => ({
+            storeId: store.id,
+            productId: newProduct.id,
+            quantity: 0,
+            lowStockAlert: 10
+          }))
+        })
       }
+
+      return newProduct
     })
 
     return NextResponse.json({ product }, { status: 201 })

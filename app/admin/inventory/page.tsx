@@ -6,19 +6,16 @@ import Link from "next/link"
 import { Package, Plus, AlertTriangle, Search, X, Edit3 } from "lucide-react"
 
 interface InventoryItem {
-  id: string
-  product: {
-    id: string
-    name: string
-    images: string[]
-  }
-  store: {
-    id: string
-    name: string
-    city: string
-  }
+  id: string | null
+  productId: string
+  productName: string
+  productImages: string[]
+  storeId: string
+  storeName: string
+  storeCity: string
   quantity: number
   lowStockAlert: number
+  hasInventory: boolean
 }
 
 export default function InventoryPage() {
@@ -26,7 +23,8 @@ export default function InventoryPage() {
   const storeFilter = searchParams.get('store')
   
   const [inventory, setInventory] = useState<InventoryItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [tableLoading, setTableLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStore, setSelectedStore] = useState<string>(storeFilter || "")
   const [showAdjustModal, setShowAdjustModal] = useState(false)
@@ -38,10 +36,13 @@ export default function InventoryPage() {
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [itemToCreate, setItemToCreate] = useState<InventoryItem | null>(null)
+  const [creatingStock, setCreatingStock] = useState(false)
 
   useEffect(() => {
     loadInventory()
-  }, [])
+  }, [searchTerm, selectedStore])
 
   useEffect(() => {
     if (storeFilter) {
@@ -50,16 +51,26 @@ export default function InventoryPage() {
   }, [storeFilter])
 
   const loadInventory = async () => {
+    if (initialLoading) {
+      setInitialLoading(true)
+    } else {
+      setTableLoading(true)
+    }
     try {
-      const response = await fetch("/api/admin/inventory")
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (selectedStore) params.append('storeId', selectedStore)
+      
+      const response = await fetch(`/api/admin/inventory/search?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setInventory(data.inventory)
+        setInventory(data.items)
       }
     } catch (error) {
       console.error("Error loading inventory:", error)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setTableLoading(false)
     }
   }
 
@@ -145,19 +156,48 @@ export default function InventoryPage() {
     }
   }
 
-  const filteredInventory = inventory.filter(item => {
-    const matchesSearch = item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.store.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStore = !selectedStore || item.store.id === selectedStore
-    return matchesSearch && matchesStore
-  })
-
-  const lowStockItems = inventory.filter(item => item.quantity <= item.lowStockAlert)
+  const lowStockItems = inventory.filter(item => item.quantity <= item.lowStockAlert && item.hasInventory)
   
-  const stores = Array.from(new Set(inventory.map(item => item.store.id)))
-    .map(id => inventory.find(item => item.store.id === id)!.store)
+  const stores = Array.from(new Set(inventory.map(item => item.storeId)))
+    .map(id => {
+      const item = inventory.find(item => item.storeId === id)
+      return item ? { id: item.storeId, name: item.storeName, city: item.storeCity } : null
+    })
+    .filter(Boolean) as Array<{ id: string; name: string; city: string }>
 
-  if (loading) {
+  // Skeleton loader for table rows
+  const InventoryRowSkeleton = () => (
+    <tr className="border-b border-zinc-800">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-lg bg-zinc-800 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-zinc-800 rounded animate-pulse w-3/4" />
+            <div className="h-3 bg-zinc-800 rounded animate-pulse w-1/2" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-zinc-800 rounded animate-pulse w-32" />
+          <div className="h-3 bg-zinc-800 rounded animate-pulse w-24" />
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-zinc-800 rounded animate-pulse w-12" />
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-zinc-800 rounded-full animate-pulse w-20" />
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-2">
+          <div className="h-10 bg-zinc-800 rounded-lg animate-pulse w-32" />
+        </div>
+      </td>
+    </tr>
+  )
+
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
@@ -272,7 +312,28 @@ export default function InventoryPage() {
       </div>
 
       {/* Inventory Table */}
-      {filteredInventory.length === 0 ? (
+      {tableLoading ? (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-white">Product</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-white">Store</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-white">Stock</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-white">Status</th>
+                  <th className="px-6 py-4 text-right text-sm font-bold text-white">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <InventoryRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : inventory.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center">
           <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">No inventory found</h3>
@@ -305,31 +366,35 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {filteredInventory.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-800/50 transition-colors">
+                {inventory.map((item) => (
+                  <tr key={`${item.productId}-${item.storeId}`} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {item.product.images[0] && (
+                        {item.productImages[0] && (
                           <img
-                            src={item.product.images[0]}
-                            alt={item.product.name}
+                            src={item.productImages[0]}
+                            alt={item.productName}
                             className="w-12 h-12 rounded-lg object-cover"
                           />
                         )}
-                        <span className="text-white font-medium">{item.product.name}</span>
+                        <span className="text-white font-medium">{item.productName}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-white font-medium">{item.store.name}</p>
-                        <p className="text-sm text-gray-400">{item.store.city}</p>
+                        <p className="text-white font-medium">{item.storeName}</p>
+                        <p className="text-sm text-gray-400">{item.storeCity}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-white font-bold text-lg">{item.quantity}</span>
                     </td>
                     <td className="px-6 py-4">
-                      {item.quantity <= item.lowStockAlert ? (
+                      {!item.hasInventory ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">
+                          No Stock
+                        </span>
+                      ) : item.quantity <= item.lowStockAlert ? (
                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400">
                           Low Stock
                         </span>
@@ -341,30 +406,50 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => openAdjustModal(item)}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
-                          style={{
-                            background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                            color: '#000',
-                            boxShadow: '0 2px 8px rgba(74, 222, 128, 0.3)',
-                          }}
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          Adjust Stock
-                        </button>
-                        <button 
-                          onClick={() => openDeleteModal(item)}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 bg-red-600 hover:bg-red-700 text-white"
-                          style={{
-                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-                          }}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </button>
+                        {!item.hasInventory ? (
+                          <button 
+                            onClick={() => {
+                              setItemToCreate(item)
+                              setShowCreateModal(true)
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                            style={{
+                              background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                              color: '#000',
+                              boxShadow: '0 2px 8px rgba(74, 222, 128, 0.3)',
+                            }}
+                          >
+                            <Plus className="w-4 h-4" />
+                            Create Stock
+                          </button>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => openAdjustModal(item)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                              style={{
+                                background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                                color: '#000',
+                                boxShadow: '0 2px 8px rgba(74, 222, 128, 0.3)',
+                              }}
+                            >
+                              <Edit3 className="w-4 h-4" />
+                              Adjust Stock
+                            </button>
+                            <button 
+                              onClick={() => openDeleteModal(item)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105 bg-red-600 hover:bg-red-700 text-white"
+                              style={{
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -531,6 +616,94 @@ export default function InventoryPage() {
                 }}
               >
                 {adjusting ? '⏳ Updating...' : '✓ Confirm Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Stock Modal */}
+      {showCreateModal && itemToCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            onClick={() => !creatingStock && setShowCreateModal(false)}
+          />
+          <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-800 border-2 rounded-3xl p-8 max-w-lg w-full shadow-2xl"
+            style={{
+              borderColor: 'rgba(74, 222, 128, 0.3)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(74, 222, 128, 0.1)',
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                }}
+              >
+                <Plus className="w-6 h-6 text-black" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">Create Stock Entry</h2>
+            </div>
+
+            <div className="mb-6 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+              <p className="text-white font-semibold">{itemToCreate.productName}</p>
+              <p className="text-gray-400 text-sm">{itemToCreate.storeName} - {itemToCreate.storeCity}</p>
+            </div>
+
+            <p className="text-gray-300 mb-6">
+              This will create a new stock entry for this product at this store with quantity 0. You can then adjust the quantity.
+            </p>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                disabled={creatingStock}
+                className="flex-1 py-3 px-6 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-xl transition-all hover:scale-105 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!itemToCreate) return
+                  setCreatingStock(true)
+                  try {
+                    const response = await fetch("/api/admin/inventory", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        storeId: itemToCreate.storeId,
+                        productId: itemToCreate.productId,
+                        quantity: 0,
+                        lowStockAlert: 10
+                      })
+                    })
+
+                    if (response.ok) {
+                      await loadInventory()
+                      setShowCreateModal(false)
+                      setItemToCreate(null)
+                    } else {
+                      const data = await response.json()
+                      setErrorMessage(data.error || "Failed to create stock")
+                      setTimeout(() => setErrorMessage(null), 3000)
+                    }
+                  } catch (error) {
+                    console.error("Error creating stock:", error)
+                    setErrorMessage("Failed to create stock")
+                    setTimeout(() => setErrorMessage(null), 3000)
+                  } finally {
+                    setCreatingStock(false)
+                  }
+                }}
+                disabled={creatingStock}
+                className="flex-1 py-3 px-6 font-bold rounded-xl transition-all hover:scale-105 disabled:opacity-50"
+                style={{
+                  background: creatingStock ? '#3f3f46' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                  color: creatingStock ? '#71717a' : '#000',
+                }}
+              >
+                {creatingStock ? 'Creating...' : 'Create Stock'}
               </button>
             </div>
           </div>
