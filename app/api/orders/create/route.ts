@@ -73,43 +73,50 @@ export async function POST(request: Request) {
       )
     }
 
+    const disableStockChecksSetting = await prisma.siteSettings.findUnique({
+      where: { key: 'disable_stock_checks' }
+    })
+    const disableStockChecks = disableStockChecksSetting?.value === 'true'
+
     // Check stock availability first (outside transaction)
-    for (const item of items) {
-      const productId = item.productId || item.id
-      const quantity = item.quantity
+    if (!disableStockChecks) {
+      for (const item of items) {
+        const productId = item.productId || item.id
+        const quantity = item.quantity
 
-      if (deliveryMethod === 'pickup' && storeId) {
-        const inventory = await prisma.storeInventory.findUnique({
-          where: {
-            storeId_productId: {
-              storeId,
-              productId
+        if (deliveryMethod === 'pickup' && storeId) {
+          const inventory = await prisma.storeInventory.findUnique({
+            where: {
+              storeId_productId: {
+                storeId,
+                productId
+              }
             }
+          })
+
+          if (!inventory || inventory.quantity < quantity) {
+            return NextResponse.json(
+              { error: `Insufficient stock for ${item.productName || item.name} at selected store` },
+              { status: 400 }
+            )
           }
-        })
+        } else {
+          const inventories = await prisma.storeInventory.findMany({
+            where: {
+              productId,
+              quantity: {
+                gte: quantity
+              }
+            },
+            take: 1
+          })
 
-        if (!inventory || inventory.quantity < quantity) {
-          return NextResponse.json(
-            { error: `Insufficient stock for ${item.productName || item.name} at selected store` },
-            { status: 400 }
-          )
-        }
-      } else {
-        const inventories = await prisma.storeInventory.findMany({
-          where: {
-            productId,
-            quantity: {
-              gte: quantity
-            }
-          },
-          take: 1
-        })
-
-        if (inventories.length === 0) {
-          return NextResponse.json(
-            { error: `Insufficient stock for ${item.productName || item.name}` },
-            { status: 400 }
-          )
+          if (inventories.length === 0) {
+            return NextResponse.json(
+              { error: `Insufficient stock for ${item.productName || item.name}` },
+              { status: 400 }
+            )
+          }
         }
       }
     }

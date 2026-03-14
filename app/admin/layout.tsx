@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
@@ -127,9 +127,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href="/"
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
             >
-              <LogOut className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4" />
               <span>Back to Store</span>
             </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors mt-1"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
       </aside>

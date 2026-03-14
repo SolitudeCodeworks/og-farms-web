@@ -43,6 +43,10 @@ const PRICING_SETTINGS = [
   { key: "delivery_fee", label: "Delivery Fee (R)", placeholder: "0", description: "Delivery fee charged for orders (set to 0 for free delivery)" },
 ]
 
+const INVENTORY_SETTINGS = [
+  { key: "disable_stock_checks", label: "Disable Stock Checks", description: "When enabled, customers can add out-of-stock items to their cart and checkout." },
+]
+
 export default function SettingsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -104,12 +108,13 @@ export default function SettingsPage() {
       const settingsArray = Object.entries(settings).map(([key, value]) => {
         const socialSetting = SOCIAL_MEDIA_SETTINGS.find(s => s.key === key)
         const contactSetting = CONTACT_SETTINGS.find(s => s.key === key)
+        const inventorySetting = INVENTORY_SETTINGS.find(s => s.key === key)
         
         return {
           key,
           value,
           category: socialSetting ? "social" : contactSetting ? "contact" : "general",
-          description: socialSetting?.description || contactSetting?.description
+          description: socialSetting?.description || contactSetting?.description || inventorySetting?.description
         }
       })
 
@@ -347,6 +352,46 @@ export default function SettingsPage() {
                   onChange={(e) => handleChange(key, e.target.value)}
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
                 />
+                {description && (
+                  <p className="text-sm text-gray-500">{description}</p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Inventory Settings */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white">Inventory Settings</CardTitle>
+            <CardDescription className="text-gray-400">
+              Configure global inventory rules
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {INVENTORY_SETTINGS.map(({ key, label, description }) => (
+              <div key={key} className="space-y-2 flex flex-col">
+                <label className="text-sm font-medium text-white">
+                  {label}
+                </label>
+                <div className="flex items-center space-x-2 bg-zinc-800 border border-zinc-700 rounded-md p-2 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => handleChange(key, settings[key] === "true" ? "false" : "true")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                      settings[key] === "true" ? 'bg-primary' : 'bg-zinc-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings[key] === "true" ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-white font-medium text-sm">
+                    {settings[key] === "true" ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
                 {description && (
                   <p className="text-sm text-gray-500">{description}</p>
                 )}

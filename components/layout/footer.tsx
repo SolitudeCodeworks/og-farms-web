@@ -190,10 +190,19 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-zinc-800 pt-8">
+        <div className="mt-12 border-t border-zinc-800 pt-8 flex flex-col items-center gap-4">
           <p className="text-center text-sm text-gray-400">
             &copy; {new Date().getFullYear()} OG Farms. All rights reserved.
           </p>
+          <div className="flex gap-4 text-sm text-gray-500">
+            <Link href="/terms" className="hover:text-primary transition-colors">
+              Terms & Conditions
+            </Link>
+            <span>|</span>
+            <Link href="/privacy" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
           <p className="mt-2 text-center text-xs text-gray-500">
             Must be 18+ to purchase. Please consume responsibly.
           </p>

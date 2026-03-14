@@ -499,11 +499,11 @@ export default function InventoryPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm font-medium">Product</span>
-                  <span className="text-white font-bold text-lg">{selectedItem.product.name}</span>
+                  <span className="text-white font-bold text-lg">{selectedItem.productName}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm font-medium">Store Location</span>
-                  <span className="text-white font-semibold">{selectedItem.store.name}</span>
+                  <span className="text-white font-semibold">{selectedItem.storeName}</span>
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t border-zinc-700">
                   <span className="text-gray-400 text-sm font-medium">Current Stock</span>
@@ -734,8 +734,8 @@ export default function InventoryPage() {
                 Are you sure you want to delete this stock entry?
               </p>
               <div className="p-4 bg-zinc-800 rounded-lg border border-zinc-700">
-                <p className="text-white font-semibold">{itemToDelete.product.name}</p>
-                <p className="text-gray-400 text-sm">{itemToDelete.store.name}</p>
+                <p className="text-white font-semibold">{itemToDelete.productName}</p>
+                <p className="text-gray-400 text-sm">{itemToDelete.storeName}</p>
                 <p className="text-gray-400 text-sm">Current Stock: {itemToDelete.quantity}</p>
               </div>
               <p className="text-red-400 text-sm font-medium">

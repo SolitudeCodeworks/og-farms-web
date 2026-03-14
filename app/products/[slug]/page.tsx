@@ -90,7 +90,11 @@ export default function ProductDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [togglingFavorite, setTogglingFavorite] = useState(false)
-  const [stockInfo, setStockInfo] = useState<{ totalStock: number; inStock: boolean } | null>(null)
+  const [stockInfo, setStockInfo] = useState<{ 
+    totalStock: number; 
+    inStock: boolean;
+    disableStockChecks?: boolean;
+  } | null>(null)
   const [loadingStock, setLoadingStock] = useState(true)
   const [showAddedToast, setShowAddedToast] = useState(false)
   
@@ -143,7 +147,11 @@ export default function ProductDetailPage() {
       const response = await fetch(`/api/products/${slug}/stock`)
       if (response.ok) {
         const data = await response.json()
-        setStockInfo({ totalStock: data.totalStock, inStock: data.inStock })
+        setStockInfo({ 
+          totalStock: data.totalStock, 
+          inStock: data.inStock,
+          disableStockChecks: data.disableStockChecks
+        })
       }
     } catch (error) {
       console.error("Error loading stock:", error)
@@ -616,7 +624,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Stock Status */}
-            {!loadingStock && stockInfo && (
+            {!loadingStock && stockInfo && !stockInfo.disableStockChecks && (
               <div className={`p-3 rounded-lg border mb-6 ${
                 stockInfo.inStock 
                   ? 'bg-green-500/10 border-green-500/30' 
@@ -663,15 +671,15 @@ export default function ProductDetailPage() {
 
                 <button
                   onClick={addToCart}
-                  disabled={(product?.ageRestricted && !session) || addingToCart || !stockInfo?.inStock}
+                  disabled={(product?.ageRestricted && !session) || addingToCart || (!stockInfo?.inStock && !stockInfo?.disableStockChecks)}
                   className="flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-full font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
-                    background: ((product?.ageRestricted && !session) || addingToCart || !stockInfo?.inStock) ? '#666' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                    background: ((product?.ageRestricted && !session) || addingToCart || (!stockInfo?.inStock && !stockInfo?.disableStockChecks)) ? '#666' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                     color: '#000',
                   }}
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {!stockInfo?.inStock ? "Out of Stock" : addingToCart ? "Adding..." : "Add to Stash"}
+                  {!stockInfo?.inStock && !stockInfo?.disableStockChecks ? "Out of Stock" : addingToCart ? "Adding..." : "Add to Stash"}
                 </button>
 
                 <button 

@@ -47,6 +47,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   const [deliveryFee, setDeliveryFee] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYFAST_ENABLED ? 'online' : 'cash')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [disableStockChecks, setDisableStockChecks] = useState(false)
 
   useEffect(() => {
     const loadCart = async () => {
@@ -121,6 +122,9 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
         if (response.ok) {
           const data = await response.json()
           stockMap[productId] = data.quantity || 0
+          if (data.disableStockChecks) {
+            setDisableStockChecks(true)
+          }
         }
       } catch (error) {
         console.error('Error checking stock:', error)
@@ -487,7 +491,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                     ))}
                   </select>
                   
-                  {selectedStore && (
+                  {selectedStore && !disableStockChecks && (
                     <div className="mt-3 space-y-2">
                       <p className="text-sm font-bold text-white">Stock Availability:</p>
                       {checkingStock ? (
@@ -827,7 +831,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   return stock < item.quantity
                 })
 
-                if (hasRequiredFields && !hasInsufficientStock) {
+                if (hasRequiredFields && (disableStockChecks || !hasInsufficientStock)) {
                   // Cash payment for pickup
                   if (paymentMethod === 'cash' && deliveryMethod === 'pickup') {
                     return (

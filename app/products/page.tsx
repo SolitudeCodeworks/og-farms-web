@@ -59,6 +59,7 @@ export default function ProductsPage() {
   const [hasMore, setHasMore] = useState(true)
   const [addingToCart, setAddingToCart] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [disableStockChecks, setDisableStockChecks] = useState(false)
   
   // Filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -112,6 +113,7 @@ export default function ProductsPage() {
       if (response.ok) {
         const data = await response.json()
         setProducts(data.products || [])
+        setDisableStockChecks(data.disableStockChecks || false)
       }
     } catch (error) {
       console.error("Error loading products:", error)
@@ -541,7 +543,7 @@ export default function ProductsPage() {
                         18+
                       </span>
                     )}
-                    {product.stockQuantity === 0 && (
+                    {product.stockQuantity === 0 && !disableStockChecks && (
                       <span className="absolute top-3 left-3 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
                         Out of Stock
                       </span>
@@ -593,16 +595,15 @@ export default function ProductsPage() {
 
                     {/* Add to Stash Button */}
                     <button
-                      onClick={(e) => addToCart(e, product)}
-                      disabled={addingToCart === product.id || product.stockQuantity === 0}
+                      onClick={(e) => addToCart(e, product)}                      disabled={addingToCart === product.id || (product.stockQuantity === 0 && !disableStockChecks)}
                       className="w-full py-2.5 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{
-                        background: (addingToCart === product.id || product.stockQuantity === 0) ? '#666' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                        color: '#000',
+                        background: (addingToCart === product.id || (product.stockQuantity === 0 && !disableStockChecks)) ? '#666' : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        color: (addingToCart === product.id || (product.stockQuantity === 0 && !disableStockChecks)) ? '#999' : '#000',
                       }}
                     >
                       <ShoppingCart className="w-4 h-4" />
-                      {product.stockQuantity === 0 ? 'Out of Stock' : addingToCart === product.id ? 'Adding...' : 'Add to Stash'}
+                      {product.stockQuantity === 0 && !disableStockChecks ? "Out of Stock" : addingToCart === product.id ? "Adding..." : "Add to Stash"}
                     </button>
                   </div>
                 </Link>

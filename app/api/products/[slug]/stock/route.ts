@@ -35,12 +35,23 @@ export async function GET(
       }
     })
 
-    const totalStock = inventory.reduce((sum, item) => sum + item.quantity, 0)
-    const inStock = totalStock > 0
+    const disableStockChecksSetting = await prisma.siteSettings.findUnique({
+      where: { key: 'disable_stock_checks' }
+    })
+    const disableStockChecks = disableStockChecksSetting?.value === 'true'
+
+    let totalStock = inventory.reduce((sum, item) => sum + item.quantity, 0)
+    let inStock = totalStock > 0
+
+    if (disableStockChecks && !inStock) {
+      totalStock = 999
+      inStock = true
+    }
 
     return NextResponse.json({
       totalStock,
       inStock,
+      disableStockChecks,
       stores: inventory.map(item => ({
         storeId: item.store.id,
         storeName: item.store.name,

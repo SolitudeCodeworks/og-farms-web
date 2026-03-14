@@ -55,8 +55,16 @@ async function getFeaturedProducts() {
       }
     })
 
+    const disableStockChecksSetting = await prisma.siteSettings.findUnique({
+      where: { key: 'disable_stock_checks' }
+    })
+    const disableStockChecks = disableStockChecksSetting?.value === 'true'
+
     return products.map(product => {
-      const totalStock = product.storeInventory.reduce((sum: number, inv: { quantity: number }) => sum + inv.quantity, 0)
+      let totalStock = product.storeInventory.reduce((sum: number, inv: { quantity: number }) => sum + inv.quantity, 0)
+      if (disableStockChecks && totalStock === 0) {
+        totalStock = 999
+      }
       
       return {
         id: product.id,

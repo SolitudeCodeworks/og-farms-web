@@ -90,13 +90,27 @@ export async function GET() {
     })
 
     // Calculate total stock for each product
-    const productsWithStock = products.map(product => ({
-      ...product,
-      stockQuantity: product.storeInventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0),
-      storeInventory: undefined // Remove storeInventory from response
-    }))
+    const disableStockChecksSetting = await prisma.siteSettings.findUnique({
+      where: { key: 'disable_stock_checks' }
+    })
+    const disableStockChecks = disableStockChecksSetting?.value === 'true'
 
-    return NextResponse.json({ products: productsWithStock }, {
+    const productsWithStock = products.map(product => {
+      let stockQuantity = product.storeInventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0)
+      if (disableStockChecks && stockQuantity === 0) {
+        stockQuantity = 999
+      }
+      return {
+        ...product,
+        stockQuantity,
+        storeInventory: undefined // Remove storeInventory from response
+      }
+    })
+
+    return NextResponse.json({ 
+      products: productsWithStock,
+      disableStockChecks 
+    }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
       }
