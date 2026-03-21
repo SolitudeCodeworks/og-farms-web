@@ -143,26 +143,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <div className="lg:pl-64 min-h-screen flex flex-col">
-        {/* Mobile floating burger */}
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="lg:hidden fixed top-3 left-3 z-30 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-gray-200 shadow-lg hover:bg-zinc-800 transition-colors"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        {/* Top bar (desktop only) */}
-        <header className="hidden lg:block sticky top-0 z-30 bg-zinc-900/95 backdrop-blur border-b border-zinc-800">
-          <div className="flex items-center justify-between px-6 py-4">
-            <h1 className="text-xl font-bold text-white">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur border-b border-zinc-800">
+          <div className="flex items-center justify-between px-4 py-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-bold text-white lg:block">
               OG Farms Admin
             </h1>
+            <div className="w-9 lg:hidden" /> {/* spacer to center title */}
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-3 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6">
           {children}
         </main>
       </div>

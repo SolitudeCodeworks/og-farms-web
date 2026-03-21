@@ -34,12 +34,16 @@ export function Header() {
 
   const totalItems = cartCount
 
+  const isAdminPage = pathname?.startsWith('/admin')
+
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Shop", href: "/shop" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
   ]
+
+  if (isAdminPage) return null
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800" style={{ backgroundColor: 'rgba(0, 0, 0, 0.98)' }}>
@@ -321,7 +325,7 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden" style={{
+        <div className="lg:hidden fixed inset-0 top-[73px] z-40 overflow-y-auto" style={{
           backgroundColor: 'rgba(0, 0, 0, 0.98)',
           backdropFilter: 'blur(10px)',
         }}>

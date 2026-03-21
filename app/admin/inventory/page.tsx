@@ -156,8 +156,19 @@ export default function InventoryPage() {
     }
   }
 
+  const ITEMS_PER_PAGE = 20
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedStore])
+
   const lowStockItems = inventory.filter(item => item.quantity <= item.lowStockAlert && item.hasInventory)
-  
+
+  const totalPages = Math.ceil(inventory.length / ITEMS_PER_PAGE)
+  const paginatedInventory = inventory.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
   const stores = Array.from(new Set(inventory.map(item => item.storeId)))
     .map(id => {
       const item = inventory.find(item => item.storeId === id)
@@ -366,7 +377,7 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {inventory.map((item) => (
+                {paginatedInventory.map((item) => (
                   <tr key={`${item.productId}-${item.storeId}`} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -456,6 +467,47 @@ export default function InventoryPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!tableLoading && inventory.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <p className="text-sm text-gray-400">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, inventory.length)} of {inventory.length} items
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className="w-9 h-9 rounded-lg text-sm font-bold transition-all"
+                  style={
+                    page === currentPage
+                      ? { background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)', color: '#000' }
+                      : { background: '#27272a', color: '#9ca3af' }
+                  }
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+            >
+              Next
+            </button>
           </div>
         </div>
       )}
