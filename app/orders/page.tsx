@@ -26,6 +26,7 @@ interface Order {
   tax: number
   shippingCost: number
   createdAt: string
+  deliveryMethod: string | null
   items: OrderItem[]
   shippingAddress: {
     fullName: string
@@ -35,6 +36,11 @@ interface Order {
     zipCode: string
     country: string
   } | null
+  pudoLockerName: string | null
+  pudoLockerAddress: string | null
+  pudoTrackingReference: string | null
+  pudoPincode: string | null
+  pudoStatus: string | null
 }
 
 const statusConfig = {
@@ -256,6 +262,55 @@ export default function OrdersPage() {
                           {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
                         </p>
                         <p>{order.shippingAddress.country}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PUDO Locker Info */}
+                  {order.deliveryMethod === 'PUDO' && (
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="font-bold text-black mb-3 flex items-center gap-2">
+                        <Package className="h-5 w-5 text-green-600" />
+                        PUDO Locker Delivery
+                      </h4>
+                      <div className="space-y-2">
+                        {order.pudoLockerName && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Locker</span>
+                            <span className="text-black font-medium">{order.pudoLockerName}</span>
+                          </div>
+                        )}
+                        {order.pudoLockerAddress && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Address</span>
+                            <span className="text-black font-medium text-right max-w-[60%]">{order.pudoLockerAddress}</span>
+                          </div>
+                        )}
+                        {order.pudoTrackingReference && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Tracking</span>
+                            <span className="font-mono font-bold text-green-700">{order.pudoTrackingReference}</span>
+                          </div>
+                        )}
+                        {order.pudoPincode && (
+                          <div
+                            className="mt-3 p-3 rounded-lg text-center"
+                            style={{ backgroundColor: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.4)' }}
+                          >
+                            <p className="text-xs text-gray-500 mb-1">Collection PIN</p>
+                            <p className="text-3xl font-bold tracking-widest text-green-700">{order.pudoPincode}</p>
+                            <p className="text-xs text-gray-500 mt-1">Use this PIN to collect your parcel</p>
+                          </div>
+                        )}
+                        {!order.pudoPincode && order.pudoTrackingReference && (
+                          <p className="text-xs text-gray-500 mt-2">Your collection PIN will be sent via SMS when the parcel is ready.</p>
+                        )}
+                        {order.pudoStatus && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">PUDO Status</span>
+                            <span className="text-black font-medium capitalize">{order.pudoStatus}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -8,7 +8,22 @@ import { PayFastButton } from '@/components/checkout/payfast-button'
 import { AddressAutocomplete } from '@/components/checkout/address-autocomplete'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Truck, Store } from 'lucide-react'
+import { Store, Package } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { buildParcelFromCart } from '@/lib/pudo'
+
+const LockerMap = dynamic(() => import('@/components/pudo/LockerMap'), { ssr: false })
+
+interface PudoLocker {
+  id: string
+  code: string
+  name: string
+  address: string
+  town?: string | null
+  postalCode?: string | null
+  latitude?: string | number | null
+  longitude?: string | number | null
+}
 
 interface GuestCartItem {
   productId: string
@@ -21,7 +36,6 @@ interface GuestCartItem {
 
 export default function CheckoutPage() {
   // Feature flags
-const DELIVERY_ENABLED = process.env.NEXT_PUBLIC_DELIVERY_ENABLED === 'true'
 const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   
   const { data: session } = useSession()
@@ -39,12 +53,17 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>(DELIVERY_ENABLED ? 'delivery' : 'pickup')
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'pudo'>('pudo')
+  const [pudoLockers, setPudoLockers] = useState<PudoLocker[]>([])
+  const [selectedLocker, setSelectedLocker] = useState<PudoLocker | null>(null)
+  const [pudoRate, setPudoRate] = useState<number | null>(null)
+  const [pudoServiceLevelCode, setPudoServiceLevelCode] = useState<string | null>(null)
+  const [loadingPudoRates, setLoadingPudoRates] = useState(false)
   const [selectedStore, setSelectedStore] = useState('')
   const [stores, setStores] = useState<any[]>([])
   const [storeStock, setStoreStock] = useState<Record<string, number>>({})
   const [checkingStock, setCheckingStock] = useState(false)
-  const [deliveryFee, setDeliveryFee] = useState(0)
+
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYFAST_ENABLED ? 'online' : 'cash')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [disableStockChecks, setDisableStockChecks] = useState(false)
@@ -68,23 +87,64 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
         setGuestCart(cart)
       }
       await loadStores()
-      await loadDeliveryFee()
+
+      await loadPudoLockers()
       setLoading(false)
     }
     
     loadCart()
   }, [session])
 
-  const loadDeliveryFee = async () => {
+
+  const loadPudoLockers = async () => {
     try {
-      const response = await fetch('/api/settings/delivery-fee')
+      const response = await fetch('/api/pudo/lockers')
       if (response.ok) {
         const data = await response.json()
-        setDeliveryFee(data.deliveryFee || 0)
+        setPudoLockers(data.lockers || [])
       }
     } catch (error) {
-      console.error('Error loading delivery fee:', error)
-      setDeliveryFee(0)
+      console.error('Error loading PUDO lockers:', error)
+    }
+  }
+
+  const fetchPudoRate = async (locker: PudoLocker) => {
+    setLoadingPudoRates(true)
+    setPudoRate(null)
+    setPudoServiceLevelCode(null)
+    try {
+      const response = await fetch('/api/pudo/rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lockerCode: locker.code,
+          collectionAddress: {
+            street_address: process.env.NEXT_PUBLIC_STORE_STREET ?? 'Shop 3 Palm Buildings Bashee Street',
+            local_area: process.env.NEXT_PUBLIC_STORE_SUBURB ?? 'Three Rivers',
+            city: process.env.NEXT_PUBLIC_STORE_CITY ?? 'Vereeniging',
+            zone: process.env.NEXT_PUBLIC_STORE_ZONE ?? 'GP',
+            code: process.env.NEXT_PUBLIC_STORE_POSTAL_CODE ?? '1930',
+            country: 'South Africa',
+            entered_address: process.env.NEXT_PUBLIC_STORE_ENTERED_ADDRESS ?? 'Shop 3 Palm Buildings, Bashee Street, Three Rivers, Vereeniging, 1930, South Africa',
+            type: 'commercial',
+          },
+          parcel: buildParcelFromCart(
+            items.map((item) => ({
+              category: 'productName' in item ? undefined : (item as any).product?.category,
+              quantity: item.quantity,
+            }))
+          ),
+        }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.rate !== null) setPudoRate(data.rate)
+        if (data.serviceLevelCode) setPudoServiceLevelCode(data.serviceLevelCode)
+      }
+    } catch (error) {
+      console.error('Error fetching PUDO rates:', error)
+    } finally {
+      setLoadingPudoRates(false)
     }
   }
 
@@ -153,7 +213,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
     
     try {
       // Calculate shipping cost based on delivery method
-      const shippingCost = deliveryMethod === 'delivery' ? deliveryFee : 0
+      const shippingCost = deliveryMethod === 'pudo' ? (pudoRate ?? 0) : 0
       const finalTotal = totalPrice + shippingCost
       
       // Create order in database
@@ -168,14 +228,13 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
           customerName: name,
           customerPhone: phone,
           deliveryMethod,
-          storeId: selectedStore,
-          address: deliveryMethod === 'delivery' ? {
-            street,
-            suburb,
-            city,
-            province,
-            postalCode
-          } : null,
+          storeId: deliveryMethod === 'pickup' ? selectedStore : null,
+          pudoLockerCode: deliveryMethod === 'pudo' ? selectedLocker?.code : null,
+          pudoLockerName: deliveryMethod === 'pudo' ? selectedLocker?.name : null,
+          pudoLockerAddress: deliveryMethod === 'pudo' ? selectedLocker?.address : null,
+          pudoRate: deliveryMethod === 'pudo' ? pudoRate : null,
+          pudoServiceLevelCode: deliveryMethod === 'pudo' ? pudoServiceLevelCode : null,
+          address: null,
           paymentReference: reference,
           subtotal: totalPrice,
           shippingCost: shippingCost,
@@ -220,6 +279,9 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
         if (store) {
           successUrl += `&store=${encodeURIComponent(store.name)}`
         }
+      }
+      if (deliveryMethod === 'pudo' && selectedLocker) {
+        successUrl += `&locker=${encodeURIComponent(selectedLocker.name)}`
       }
       router.push(successUrl)
     } catch (error: any) {
@@ -400,69 +462,41 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   Delivery Method *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => DELIVERY_ENABLED && setDeliveryMethod('delivery')}
-                      disabled={!DELIVERY_ENABLED}
-                      className={`w-full py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
-                        deliveryMethod === 'delivery' ? 'scale-105' : ''
-                      } ${!DELIVERY_ENABLED ? 'cursor-not-allowed opacity-60' : ''}`}
-                      style={{
-                        background: deliveryMethod === 'delivery' 
-                          ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
-                          : !DELIVERY_ENABLED ? '#3f3f46' : '#f3f4f6',
-                        color: deliveryMethod === 'delivery' ? '#000' : !DELIVERY_ENABLED ? '#a1a1aa' : '#6b7280',
-                        boxShadow: deliveryMethod === 'delivery' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
-                      }}
-                    >
-                      <Truck className="h-5 w-5" />
-                      Delivery
-                    </button>
-                    {!DELIVERY_ENABLED && (
-                      <div className="absolute -bottom-8 left-0 right-0">
-                        <p className="text-xs text-orange-400 text-center font-medium">
-                          Coming Soon
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('pudo')}
+                    className={`py-3 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1 text-sm ${
+                      deliveryMethod === 'pudo' ? 'scale-105' : ''
+                    }`}
+                    style={{
+                      background: deliveryMethod === 'pudo'
+                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
+                        : '#f3f4f6',
+                      color: deliveryMethod === 'pudo' ? '#000' : '#6b7280',
+                      boxShadow: deliveryMethod === 'pudo' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
+                    }}
+                  >
+                    <Package className="h-4 w-4" />
+                    PUDO Locker
+                  </button>
                   <button
                     type="button"
                     onClick={() => setDeliveryMethod('pickup')}
-                    className={`py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                    className={`py-3 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1 text-sm ${
                       deliveryMethod === 'pickup' ? 'scale-105' : ''
                     }`}
                     style={{
-                      background: deliveryMethod === 'pickup' 
-                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' 
+                      background: deliveryMethod === 'pickup'
+                        ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
                         : '#f3f4f6',
                       color: deliveryMethod === 'pickup' ? '#000' : '#6b7280',
                       boxShadow: deliveryMethod === 'pickup' ? '0 4px 15px rgba(74, 222, 128, 0.4)' : 'none',
                     }}
                   >
-                    <Store className="h-5 w-5" />
+                    <Store className="h-4 w-4" />
                     Store Pickup
                   </button>
                 </div>
-                
-                {/* Delivery Not Available Notice */}
-                {!DELIVERY_ENABLED && (
-                  <div className="mt-8 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="shrink-0 mt-0.5">
-                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm text-orange-400 leading-relaxed">
-                          <span className="font-semibold">Delivery Service Temporarily Unavailable:</span> We're currently only offering store pickup. Delivery service will be available soon. Thank you for your understanding!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Store Selection for Pickup */}
@@ -533,6 +567,28 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                       ) : null}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* PUDO Locker Selection */}
+              {deliveryMethod === 'pudo' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-white mb-1">
+                    Select PUDO Locker *
+                  </label>
+                  <p className="text-xs text-gray-400 mb-3">
+                    Your order will be delivered to a PUDO locker near you. Collect at your convenience using your PIN.
+                  </p>
+                  <LockerMap
+                    lockers={pudoLockers}
+                    selectedLocker={selectedLocker}
+                    onSelectLocker={(locker) => {
+                      setSelectedLocker(locker)
+                      fetchPudoRate(locker)
+                    }}
+                    loadingRate={loadingPudoRates}
+                    rate={pudoRate}
+                  />
                 </div>
               )}
 
@@ -656,7 +712,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   />
                 </div>
 
-                {deliveryMethod === 'delivery' && (
+                {false && (
                   <div className="space-y-4">
                     <h2 className="text-2xl font-bold text-white mb-6">Delivery Address</h2>
 
@@ -805,20 +861,26 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-400">Delivery:</span>
                   <span className="text-white font-bold">
-                    {deliveryMethod === 'pickup' ? 'FREE' : (deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee))}
+                    {deliveryMethod === 'pickup'
+                      ? 'FREE'
+                      : (loadingPudoRates ? 'Calculating...' : pudoRate !== null ? formatPrice(pudoRate) : selectedLocker ? 'Calculating...' : 'Select locker')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xl mt-4 pt-3 border-t" style={{ borderColor: 'rgba(74, 222, 128, 0.3)' }}>
                   <span className="text-white font-bold">Total:</span>
                   <span className="font-bold" style={{ color: '#4ade80', fontSize: '1.5rem' }}>
-                    {formatPrice(totalPrice + (deliveryMethod === 'delivery' ? deliveryFee : 0))}
+                    {formatPrice(totalPrice + (deliveryMethod === 'pudo' ? (pudoRate ?? 0) : 0))}
                   </span>
                 </div>
               </div>
 
               {(() => {
                 // Check if all required fields are filled
-                const hasRequiredFields = email && name && phone && (deliveryMethod === 'pickup' ? selectedStore : (street && suburb && city && province && postalCode))
+                const hasRequiredFields = email && name && phone && (
+                  deliveryMethod === 'pickup' ? selectedStore :
+                  deliveryMethod === 'pudo' ? (selectedLocker && pudoRate !== null) :
+                  (street && suburb && city && province && postalCode)
+                )
                 
                 // Check if all items have sufficient stock for pickup
                 const hasInsufficientStock = deliveryMethod === 'pickup' && selectedStore && Object.keys(storeStock).length > 0 && items.some((item) => {
@@ -851,9 +913,9 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   }
                   
                   // Online payment with PayFast
-                  const shippingCost = deliveryMethod === 'delivery' ? deliveryFee : 0
+                  const shippingCost = deliveryMethod === 'pudo' ? (pudoRate ?? 0) : 0
                   const store = stores.find(s => s.id === selectedStore)
-                  
+
                   return (
                     <PayFastButton
                       email={email}
@@ -863,13 +925,17 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                       deliveryMethod={deliveryMethod}
                       storeId={selectedStore}
                       storeName={store?.name}
-                      address={deliveryMethod === 'delivery' ? {
+                      address={false ? {
                         street,
                         suburb,
                         city,
                         province,
                         postalCode
                       } : undefined}
+                      pudoLockerCode={deliveryMethod === 'pudo' ? selectedLocker?.code : undefined}
+                      pudoLockerName={deliveryMethod === 'pudo' ? selectedLocker?.name : undefined}
+                      pudoLockerAddress={deliveryMethod === 'pudo' ? selectedLocker?.address : undefined}
+                      pudoServiceLevelCode={deliveryMethod === 'pudo' ? (pudoServiceLevelCode ?? undefined) : undefined}
                       items={items}
                       subtotal={totalPrice}
                       shippingCost={shippingCost}
@@ -881,6 +947,10 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   let buttonText = 'Fill in all details'
                   if (deliveryMethod === 'pickup' && !selectedStore) {
                     buttonText = 'Select a pickup store'
+                  } else if (deliveryMethod === 'pudo' && !selectedLocker) {
+                    buttonText = 'Select a PUDO locker'
+                  } else if (deliveryMethod === 'pudo' && pudoRate === null) {
+                    buttonText = loadingPudoRates ? 'Calculating shipping...' : 'Select a PUDO locker'
                   } else if (hasInsufficientStock) {
                     buttonText = 'Insufficient stock at selected store'
                   }
@@ -901,9 +971,11 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
               })()}
 
               <p className="text-xs text-gray-500 text-center mt-4">
-                {paymentMethod === 'cash' && deliveryMethod === 'pickup' 
-                  ? 'Pay with cash when you collect your order at the store' 
-                  : 'Secure payment powered by PayFast'}
+                {paymentMethod === 'cash' && deliveryMethod === 'pickup'
+                  ? 'Pay with cash when you collect your order at the store'
+                  : deliveryMethod === 'pudo'
+                    ? 'Your order will be delivered to the selected PUDO locker. You will receive a PIN to collect it.'
+                    : 'Secure payment powered by PayFast'}
               </p>
             </div>
           </div>

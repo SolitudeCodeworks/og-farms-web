@@ -43,7 +43,18 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ orders })
+    // Shape orders to include PUDO fields
+    const shaped = orders.map((o: any) => ({
+      ...o,
+      pudoLockerName: o.pudoLockerName,
+      pudoLockerAddress: o.pudoLockerAddress,
+      pudoTrackingReference: o.pudoTrackingReference,
+      pudoPincode: o.pudoPincode,
+      pudoStatus: o.pudoStatus,
+      deliveryMethod: o.fulfillmentType,
+    }))
+
+    return NextResponse.json({ orders: shaped })
   } catch (error) {
     console.error("Error fetching orders:", error)
     return NextResponse.json(
