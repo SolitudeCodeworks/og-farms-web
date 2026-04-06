@@ -176,7 +176,7 @@ export function buildParcelFromCart(items: CartItemForParcel[]): PudoParcel {
   let maxL = 0, maxW = 0, totalH = 0, totalKg = 0
 
   for (const item of items) {
-    const dims = (item.category && CATEGORY_PARCEL[item.category]) ?? DEFAULT_PARCEL
+    const dims = (item.category ? CATEGORY_PARCEL[item.category] : undefined) ?? DEFAULT_PARCEL
     if (dims.l > maxL) maxL = dims.l
     if (dims.w > maxW) maxW = dims.w
     totalH += dims.h * item.quantity
