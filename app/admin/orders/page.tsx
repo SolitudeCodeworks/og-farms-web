@@ -69,6 +69,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>("all")
   const [fulfillmentFilter, setFulfillmentFilter] = useState<string>("all")
   const [storeFilter, setStoreFilter] = useState<string>("all")
@@ -113,9 +114,14 @@ export default function OrdersPage() {
       if (response.ok) {
         const data = await response.json()
         setOrders(data.orders)
+        setLoadError(null)
+      } else {
+        const data = await response.json().catch(() => ({}))
+        setLoadError(data.error || `Failed to load orders (${response.status})`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading orders:", error)
+      setLoadError(error.message || "Failed to load orders")
     } finally {
       setLoading(false)
     }
@@ -354,12 +360,24 @@ export default function OrdersPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <img 
-            src="/images/weed-icon.png" 
+          <img
+            src="/images/weed-icon.png"
             alt="Loading"
             className="w-16 h-16 animate-spin"
           />
           <p className="text-white text-lg">Loading orders...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-red-400 text-lg font-bold mb-2">Failed to load orders</p>
+          <p className="text-gray-400 text-sm mb-4">{loadError}</p>
+          <button onClick={loadOrders} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold">Retry</button>
         </div>
       </div>
     )

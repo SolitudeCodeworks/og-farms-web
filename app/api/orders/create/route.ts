@@ -87,6 +87,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // Idempotency check — prevent duplicate orders for the same payment reference
+    if (paymentReference) {
+      const existingOrder = await prisma.order.findFirst({
+        where: { paymentReference },
+        select: { id: true, orderNumber: true, status: true, fulfillmentType: true, total: true, subtotal: true, shippingCost: true, customerEmail: true, customerName: true, customerPhone: true, createdAt: true }
+      })
+      if (existingOrder) {
+        return NextResponse.json({ order: existingOrder, duplicate: true })
+      }
+    }
+
     const disableStockChecksSetting = await prisma.siteSettings.findUnique({
       where: { key: 'disable_stock_checks' }
     })

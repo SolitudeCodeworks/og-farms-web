@@ -898,7 +898,7 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   if (paymentMethod === 'cash' && deliveryMethod === 'pickup') {
                     return (
                       <button
-                        onClick={() => handleSuccess('CASH_PAYMENT')}
+                        onClick={() => handleSuccess(`CASH-${Date.now()}`)}
                         disabled={isProcessing}
                         className="w-full py-4 rounded-full font-bold uppercase tracking-wide text-lg transition-all hover:scale-105"
                         style={{
