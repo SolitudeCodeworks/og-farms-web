@@ -111,8 +111,38 @@ model Order {
   deliveryState   String?
   deliveryZipCode String?
   deliveryCountry String?        @default("South Africa")
+  // PUDO / locker delivery fields
+  pudoShipmentId          String?   // PUDO internal shipment ID
+  pudoTrackingReference   String?   // e.g. TCGD000500
+  pudoLockerCode          String?   // terminal_id of the selected locker e.g. CG54
+  pudoLockerName          String?   // Human-readable locker name
+  pudoLockerAddress       String?   // Full locker address string
+  pudoServiceLevelCode    String?   // e.g. D2LXS - ECO
+  pudoRate                Float?    // Quoted PUDO rate (incl. VAT)
+  pudoStatus              String?   // PUDO-reported status e.g. submitted, delivered
+  pudoPincode             String?   // PIN customer uses to collect from locker
+  pudoLabelUrl            String?   // Waybill PDF URL
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+}
+
+// Cached list of PUDO lockers – refreshed periodically via admin or cron
+model PudoLocker {
+  id          String   @id @default(cuid())
+  code        String   @unique  // terminal_id e.g. "CG54"
+  name        String
+  address     String
+  latitude    String?
+  longitude   String?
+  town        String?
+  postalCode  String?
+  isActive    Boolean  @default(true)
+  rawData     Json?    // Full PUDO API response for this locker
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([town])
 }
 
 model OrderItem {
@@ -177,6 +207,7 @@ enum OrderStatus {
 enum FulfillmentType {
   DELIVERY
   PICKUP
+  PUDO
 }
 
 enum DiscountType {

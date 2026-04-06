@@ -22,6 +22,16 @@ interface Order {
   createdAt: string
   pickupStoreId?: string
   paymentReference?: string
+  // PUDO fields
+  pudoShipmentId?: string | null
+  pudoTrackingReference?: string | null
+  pudoLockerCode?: string | null
+  pudoLockerName?: string | null
+  pudoLockerAddress?: string | null
+  pudoServiceLevelCode?: string | null
+  pudoRate?: number | null
+  pudoStatus?: string | null
+  pudoLabelUrl?: string | null
   user?: {
     name: string
     email: string
@@ -59,6 +69,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>("all")
   const [fulfillmentFilter, setFulfillmentFilter] = useState<string>("all")
   const [storeFilter, setStoreFilter] = useState<string>("all")
@@ -84,6 +95,13 @@ export default function OrdersPage() {
     order: Order | null
   }>({ isOpen: false, order: null })
   const [isProcessing, setIsProcessing] = useState(false)
+  const [pudoModal, setPudoModal] = useState<{
+    isOpen: boolean
+    order: Order | null
+    tracking: unknown
+    loading: boolean
+  }>({ isOpen: false, order: null, tracking: null, loading: false })
+  const [pudoBooking, setPudoBooking] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     loadOrders()
@@ -96,9 +114,14 @@ export default function OrdersPage() {
       if (response.ok) {
         const data = await response.json()
         setOrders(data.orders)
+        setLoadError(null)
+      } else {
+        const data = await response.json().catch(() => ({}))
+        setLoadError(data.error || `Failed to load orders (${response.status})`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading orders:", error)
+      setLoadError(error.message || "Failed to load orders")
     } finally {
       setLoading(false)
     }
@@ -179,6 +202,62 @@ export default function OrdersPage() {
       console.error('Error updating status:', error)
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  const bookPudoShipment = async (order: Order) => {
+    setPudoBooking(prev => ({ ...prev, [order.id]: true }))
+    try {
+      const res = await fetch('/api/pudo/shipments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      alert(`PUDO shipment booked! Tracking: ${data.shipment.custom_tracking_reference}`)
+      loadOrders()
+    } catch (err: any) {
+      alert(`Failed to book PUDO shipment: ${err.message}`)
+    } finally {
+      setPudoBooking(prev => ({ ...prev, [order.id]: false }))
+    }
+  }
+
+  const openPudoModal = async (order: Order) => {
+    setPudoModal({ isOpen: true, order, tracking: null, loading: true })
+    try {
+      const res = await fetch(`/api/pudo/shipments?orderId=${order.id}`)
+      const data = await res.json()
+      setPudoModal(prev => ({ ...prev, tracking: data.tracking, loading: false }))
+    } catch {
+      setPudoModal(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const cancelPudoShipment = async (orderId: string) => {
+    if (!confirm('Cancel this PUDO shipment? This cannot be undone.')) return
+    try {
+      const res = await fetch(`/api/pudo/shipments?orderId=${orderId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      alert('PUDO shipment cancelled.')
+      setPudoModal(prev => ({ ...prev, isOpen: false }))
+      loadOrders()
+    } catch (err: any) {
+      alert(`Failed to cancel: ${err.message}`)
+    }
+  }
+
+  const downloadPudoLabel = async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/pudo/label?orderId=${orderId}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      if (data.url) window.open(data.url, '_blank')
+      else alert('Label URL not available yet.')
+    } catch (err: any) {
+      alert(`Failed to get label: ${err.message}`)
     }
   }
 
@@ -281,12 +360,24 @@ export default function OrdersPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <img 
-            src="/images/weed-icon.png" 
+          <img
+            src="/images/weed-icon.png"
             alt="Loading"
             className="w-16 h-16 animate-spin"
           />
           <p className="text-white text-lg">Loading orders...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-red-400 text-lg font-bold mb-2">Failed to load orders</p>
+          <p className="text-gray-400 text-sm mb-4">{loadError}</p>
+          <button onClick={loadOrders} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold">Retry</button>
         </div>
       </div>
     )
@@ -666,6 +757,23 @@ export default function OrdersPage() {
                       <p className="text-gray-300">{order.pickupStore.name}</p>
                       <p className="text-gray-400">{order.pickupStore.city}</p>
                     </>
+                  ) : order.fulfillmentType === "PUDO" ? (
+                    <>
+                      <p className="text-white font-medium">PUDO Locker Delivery:</p>
+                      <p className="text-gray-300">{order.pudoLockerName ?? order.pudoLockerCode}</p>
+                      <p className="text-gray-400">{order.pudoLockerAddress}</p>
+                      {order.pudoTrackingReference && (
+                        <p className="text-primary text-xs mt-1 font-mono">
+                          Tracking: {order.pudoTrackingReference}
+                        </p>
+                      )}
+                      {order.pudoStatus && (
+                        <p className="text-xs mt-1">
+                          <span className="text-gray-500">PUDO Status:</span>{' '}
+                          <span className="text-green-400 font-bold">{order.pudoStatus}</span>
+                        </p>
+                      )}
+                    </>
                   ) : order.fulfillmentType === "DELIVERY" && order.deliveryStreet ? (
                     <>
                       <p className="text-white font-medium">Delivery Address:</p>
@@ -698,6 +806,38 @@ export default function OrdersPage() {
                   <User className="w-4 h-4" />
                   Customer Information
                 </button>
+
+                {/* PUDO Shipment Controls */}
+                {(order.fulfillmentType === 'PUDO' || order.fulfillmentType === 'DELIVERY') && (
+                  order.pudoShipmentId ? (
+                    <>
+                      <button
+                        onClick={() => openPudoModal(order)}
+                        className="px-4 py-2.5 bg-green-700 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2"
+                      >
+                        <Truck className="w-4 h-4" />
+                        PUDO Track
+                      </button>
+                      <button
+                        onClick={() => downloadPudoLabel(order.id)}
+                        className="px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2"
+                      >
+                        Label PDF
+                      </button>
+                    </>
+                  ) : (
+                    order.status !== 'CANCELLED' && order.status !== 'REFUNDED' && (
+                      <button
+                        onClick={() => bookPudoShipment(order)}
+                        disabled={pudoBooking[order.id]}
+                        className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2"
+                      >
+                        <Truck className="w-4 h-4" />
+                        {pudoBooking[order.id] ? 'Booking...' : 'Book PUDO'}
+                      </button>
+                    )
+                  )
+                )}
 
                 {/* Single Manage Order Button */}
                 {order.status === "COMPLETED" ? (
@@ -959,6 +1099,74 @@ export default function OrdersPage() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* PUDO Tracking Modal */}
+      {pudoModal.isOpen && pudoModal.order && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-full bg-green-500/20">
+                  <Truck className="w-6 h-6 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">PUDO Shipment</h3>
+                  <p className="text-sm text-gray-400">Order #{pudoModal.order.orderNumber}</p>
+                </div>
+              </div>
+              <button onClick={() => setPudoModal({ isOpen: false, order: null, tracking: null, loading: false })} className="text-gray-400 hover:text-white">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div className="bg-zinc-800 rounded-lg p-3 text-sm">
+                <p className="text-gray-400 text-xs mb-1">Tracking Reference</p>
+                <p className="text-primary font-mono font-bold">{pudoModal.order.pudoTrackingReference ?? '—'}</p>
+              </div>
+              <div className="bg-zinc-800 rounded-lg p-3 text-sm">
+                <p className="text-gray-400 text-xs mb-1">Locker</p>
+                <p className="text-white font-bold">{pudoModal.order.pudoLockerName}</p>
+                <p className="text-gray-400">{pudoModal.order.pudoLockerAddress}</p>
+              </div>
+              <div className="bg-zinc-800 rounded-lg p-3 text-sm">
+                <p className="text-gray-400 text-xs mb-1">PUDO Status</p>
+                <p className="text-green-400 font-bold">{pudoModal.order.pudoStatus ?? 'Unknown'}</p>
+              </div>
+              {pudoModal.order.pudoRate && (
+                <div className="bg-zinc-800 rounded-lg p-3 text-sm">
+                  <p className="text-gray-400 text-xs mb-1">Shipping Rate</p>
+                  <p className="text-white font-bold">R{pudoModal.order.pudoRate.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
+
+            {pudoModal.loading ? (
+              <div className="text-center py-4 text-gray-400">Loading tracking info...</div>
+            ) : pudoModal.tracking ? (
+              <div className="bg-zinc-800 rounded-lg p-3 text-xs text-gray-300 font-mono overflow-x-auto mb-4">
+                <p className="text-gray-400 text-xs mb-2 font-sans">Live Tracking Data:</p>
+                <pre className="whitespace-pre-wrap break-all">{JSON.stringify(pudoModal.tracking, null, 2)}</pre>
+              </div>
+            ) : null}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadPudoLabel(pudoModal.order!.id)}
+                className="flex-1 px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-bold rounded-lg transition-all"
+              >
+                Download Label PDF
+              </button>
+              <button
+                onClick={() => cancelPudoShipment(pudoModal.order!.id)}
+                className="px-4 py-2.5 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-all"
+              >
+                Cancel Shipment
+              </button>
+            </div>
           </div>
         </div>
       )}
