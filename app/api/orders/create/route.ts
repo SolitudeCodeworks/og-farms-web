@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { unstable_cache } from 'next/cache'
-import { createPudoD2LShipment, buildParcelFromCart, type PudoAddress, type PudoContact } from "@/lib/pudo"
 
 // Cache admin emails for 5 minutes
 const getAdminEmails = unstable_cache(
@@ -42,13 +41,7 @@ export async function POST(request: Request) {
       paymentReference,
       subtotal,
       shippingCost,
-      totalAmount,
-      // PUDO fields
-      pudoLockerCode,
-      pudoLockerName,
-      pudoLockerAddress,
-      pudoRate,
-      pudoServiceLevelCode,
+      totalAmount
     } = body
 
     // Validate required fields
@@ -73,29 +66,11 @@ export async function POST(request: Request) {
       )
     }
 
-    if (deliveryMethod === 'pudo' && !pudoLockerCode) {
-      return NextResponse.json(
-        { error: "Locker selection required for PUDO delivery" },
-        { status: 400 }
-      )
-    }
-
     if (deliveryMethod === 'delivery' && !address) {
       return NextResponse.json(
         { error: "Delivery address required" },
         { status: 400 }
       )
-    }
-
-    // Idempotency check — prevent duplicate orders for the same payment reference
-    if (paymentReference) {
-      const existingOrder = await prisma.order.findFirst({
-        where: { paymentReference },
-        select: { id: true, orderNumber: true, status: true, fulfillmentType: true, total: true, subtotal: true, shippingCost: true, customerEmail: true, customerName: true, customerPhone: true, createdAt: true }
-      })
-      if (existingOrder) {
-        return NextResponse.json({ order: existingOrder, duplicate: true })
-      }
     }
 
     const disableStockChecksSetting = await prisma.siteSettings.findUnique({
@@ -171,12 +146,6 @@ export async function POST(request: Request) {
       }
 
       // Create order
-      const fulfillmentTypeMap: Record<string, 'DELIVERY' | 'PICKUP' | 'PUDO'> = {
-        delivery: 'DELIVERY',
-        pickup: 'PICKUP',
-        pudo: 'PUDO',
-      }
-
       const newOrder = await tx.order.create({
         data: {
           userId: session?.user?.id,
@@ -186,7 +155,7 @@ export async function POST(request: Request) {
           customerPhone,
           paymentReference: paymentReference,
           status: 'PROCESSING',
-          fulfillmentType: fulfillmentTypeMap[deliveryMethod] ?? 'DELIVERY',
+          fulfillmentType: deliveryMethod.toUpperCase() as 'DELIVERY' | 'PICKUP',
           pickupStoreId: deliveryMethod === 'pickup' ? storeId : null,
           addressId: addressId,
           // Store delivery address directly in order for all orders
@@ -194,12 +163,7 @@ export async function POST(request: Request) {
           deliveryCity: deliveryMethod === 'delivery' && address ? address.city : null,
           deliveryState: deliveryMethod === 'delivery' && address ? address.province : null,
           deliveryZipCode: deliveryMethod === 'delivery' && address ? address.postalCode : null,
-          deliveryCountry: (deliveryMethod === 'delivery' || deliveryMethod === 'pudo') ? 'South Africa' : null,
-          // PUDO locker fields
-          pudoLockerCode: deliveryMethod === 'pudo' ? pudoLockerCode : null,
-          pudoLockerName: deliveryMethod === 'pudo' ? pudoLockerName : null,
-          pudoLockerAddress: deliveryMethod === 'pudo' ? pudoLockerAddress : null,
-          pudoRate: deliveryMethod === 'pudo' ? pudoRate : null,
+          deliveryCountry: deliveryMethod === 'delivery' ? 'South Africa' : null,
           total: totalAmount,
           subtotal: subtotal || totalAmount,
           tax: 0,
@@ -277,9 +241,6 @@ export async function POST(request: Request) {
     })
 
     // Send confirmation email via Brevo
-    if (process.env.DISABLE_EMAILS === 'true') {
-      console.log('=== EMAILS DISABLED (DISABLE_EMAILS=true) ===')
-    } else {
     console.log('=== EMAIL SENDING START ===')
     console.log('Customer Email:', customerEmail)
     console.log('Order Number:', order.orderNumber)
@@ -403,14 +364,6 @@ export async function POST(request: Request) {
                     <p><strong>Payment Reference:</strong> ${paymentReference}</p>
                     ${deliveryMethod === 'pickup' ? `
                       <p><strong>Pickup Location:</strong> ${order.pickupStore?.name}, ${order.pickupStore?.address}</p>
-                    ` : deliveryMethod === 'pudo' ? `
-                      <p><strong>Delivery Method:</strong> PUDO Locker</p>
-                      ${pudoLockerName ? `<p><strong>Locker:</strong> ${pudoLockerName}</p>` : ''}
-                      ${pudoLockerAddress ? `<p><strong>Locker Address:</strong> ${pudoLockerAddress}</p>` : ''}
-                      <p style="margin-top:12px;padding:12px;background:#f0fdf4;border:2px solid #4ade80;border-radius:8px;text-align:center;">
-                        <span style="display:block;font-size:12px;color:#555;margin-bottom:4px;">Your collection PIN will be sent via SMS when your parcel arrives.</span>
-                        <span style="display:block;font-size:12px;color:#555;">You can also find your PIN on your <a href="https://ogfarms.co.za/orders" style="color:#16a34a;">orders page</a> once booked.</span>
-                      </p>
                     ` : `
                       <p><strong>Delivery Address:</strong> ${address}</p>
                     `}
@@ -428,7 +381,7 @@ export async function POST(request: Request) {
                     </div>
                   </div>
                   
-                  <p>We'll send you another email when your order is ready ${deliveryMethod === 'pickup' ? 'for pickup' : deliveryMethod === 'pudo' ? 'and on its way to your locker' : 'for delivery'}.</p>
+                  <p>We'll send you another email when your order is ready ${deliveryMethod === 'pickup' ? 'for pickup' : 'for delivery'}.</p>
                   
                   <p>If you have any questions, please contact us at <strong>073 963 8575</strong></p>
                 </div>
@@ -612,95 +565,6 @@ export async function POST(request: Request) {
     } catch (adminEmailError) {
       console.error('Admin email error:', adminEmailError)
       // Don't fail the order if admin email fails
-    }
-    } // end DISABLE_EMAILS else
-
-    // Auto-book PUDO shipment for PUDO orders
-    if (deliveryMethod === 'pudo' && pudoLockerCode) {
-      try {
-        // Read collection method from admin settings
-        const methodSetting = await prisma.siteSettings.findUnique({ where: { key: 'pudo_collection_method' } })
-        const collectionMethod = methodSetting?.value ?? 'D2L'
-
-        const kioskSetting = await prisma.siteSettings.findUnique({ where: { key: 'pudo_kiosk_terminal_id' } })
-        const kioskTerminalId = kioskSetting?.value ?? ''
-
-        // D2L: use store street address. K2L: use kiosk terminal_id.
-        const collectionAddress: PudoAddress = collectionMethod === 'K2L' && kioskTerminalId
-          ? { terminal_id: kioskTerminalId }
-          : {
-              street_address: process.env.STORE_STREET ?? 'Shop 3 Palm Buildings Bashee Street',
-              local_area: process.env.STORE_SUBURB ?? 'Three Rivers',
-              city: process.env.STORE_CITY ?? 'Three Rivers',
-              zone: process.env.STORE_ZONE ?? 'GP',
-              code: process.env.STORE_POSTAL_CODE ?? '1930',
-              country: 'South Africa',
-              entered_address: process.env.STORE_ENTERED_ADDRESS ?? 'Shop 3 Palm Buildings Bashee Street, Three Rivers, Gauteng 1930, South Africa',
-              type: 'commercial',
-              lat: process.env.STORE_LAT,
-              lng: process.env.STORE_LNG,
-              company: 'OG Farms',
-            }
-
-        // Service level: K2L uses size-based code from frontend; D2L always uses ECO
-        const serviceLevelCode = collectionMethod === 'K2L' && pudoServiceLevelCode
-          ? pudoServiceLevelCode
-          : 'ECO'
-
-        const collectionContact: PudoContact = {
-          name: process.env.STORE_CONTACT_NAME ?? 'OG Farms',
-          email: process.env.STORE_CONTACT_EMAIL ?? 'info@ogfarms.co.za',
-          mobile_number: process.env.STORE_CONTACT_PHONE ?? '+27787722491',
-        }
-
-        const deliveryContact: PudoContact = {
-          name: customerName,
-          email: customerEmail,
-          mobile_number: customerPhone.startsWith('+')
-            ? customerPhone
-            : `+27${customerPhone.replace(/^0/, '')}`,
-        }
-
-        const parcel = buildParcelFromCart(
-          items.map((item: any) => ({ category: item.category, quantity: item.quantity }))
-        )
-
-        const shipment = await createPudoD2LShipment({
-          collectionAddress,
-          collectionContact,
-          lockerTerminalId: pudoLockerCode,
-          deliveryContact,
-          serviceLevelCode,
-          parcel,
-        })
-
-        // Save PUDO shipment details back to the order
-        await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            pudoShipmentId: String(shipment.id),
-            pudoTrackingReference: shipment.custom_tracking_reference,
-            pudoPincode: shipment.pincode ?? null,
-            pudoStatus: shipment.status,
-            pudoRate: shipment.rate,
-            pudoServiceLevelCode: 'D2LXS - ECO',
-          },
-        })
-
-        console.log('=== PUDO SHIPMENT AUTO-BOOKED ===')
-        console.log('Order:', order.orderNumber)
-        console.log('Tracking:', shipment.custom_tracking_reference)
-        console.log('Locker:', pudoLockerCode)
-        console.log('Status:', shipment.status)
-        console.log('=================================')
-      } catch (pudoError: any) {
-        // Don't fail the order — admin can manually book from the panel
-        console.error('=== PUDO AUTO-BOOKING FAILED ===')
-        console.error('Order:', order.orderNumber)
-        console.error('Error:', pudoError.message)
-        console.error('Admin can manually book from the orders panel.')
-        console.error('================================')
-      }
     }
 
     return NextResponse.json({

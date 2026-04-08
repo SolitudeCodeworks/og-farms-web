@@ -35,15 +35,6 @@ export async function GET() {
         updatedAt: true,
         pickupStoreId: true,
         paymentReference: true,
-        pudoShipmentId: true,
-        pudoTrackingReference: true,
-        pudoLockerCode: true,
-        pudoLockerName: true,
-        pudoLockerAddress: true,
-        pudoServiceLevelCode: true,
-        pudoRate: true,
-        pudoStatus: true,
-        pudoLabelUrl: true,
         user: {
           select: {
             name: true,

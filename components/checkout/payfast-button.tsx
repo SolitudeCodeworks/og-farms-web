@@ -7,7 +7,7 @@ interface PayFastButtonProps {
   name: string
   amount: number
   phone: string
-  deliveryMethod: 'delivery' | 'pickup' | 'pudo'
+  deliveryMethod: 'delivery' | 'pickup'
   storeId?: string
   storeName?: string
   address?: {
@@ -17,10 +17,6 @@ interface PayFastButtonProps {
     province: string
     postalCode: string
   }
-  pudoLockerCode?: string
-  pudoLockerName?: string
-  pudoLockerAddress?: string
-  pudoServiceLevelCode?: string
   items: any[]
   subtotal: number
   shippingCost: number
@@ -28,24 +24,20 @@ interface PayFastButtonProps {
   onClose: () => void
 }
 
-export function PayFastButton({
-  email,
-  name,
-  amount,
+export function PayFastButton({ 
+  email, 
+  name, 
+  amount, 
   phone,
   deliveryMethod,
   storeId,
   storeName,
   address,
-  pudoLockerCode,
-  pudoLockerName,
-  pudoLockerAddress,
-  pudoServiceLevelCode,
   items,
   subtotal,
   shippingCost,
-  onSuccess,
-  onClose
+  onSuccess, 
+  onClose 
 }: PayFastButtonProps) {
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -55,7 +47,7 @@ export function PayFastButton({
     
     // Save checkout data to sessionStorage for processing after PayFast redirect
     const checkoutData = {
-      paymentId,
+      paymentId, // Store the payment ID we're sending to PayFast
       email,
       name,
       phone,
@@ -63,10 +55,6 @@ export function PayFastButton({
       storeId,
       storeName,
       address,
-      pudoLockerCode,
-      pudoLockerName,
-      pudoLockerAddress,
-      pudoServiceLevelCode,
       items,
       subtotal,
       shippingCost,

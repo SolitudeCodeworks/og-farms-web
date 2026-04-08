@@ -62,7 +62,7 @@ function OrderSuccessContent() {
             </div>
 
             {method === 'delivery' ? (
-              <div
+              <div 
                 className="p-4 rounded-lg"
                 style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.3)',
@@ -74,24 +74,8 @@ function OrderSuccessContent() {
                   Your order will be delivered within 2-3 business days.
                 </p>
               </div>
-            ) : method === 'pudo' ? (
-              <div
-                className="p-4 rounded-lg"
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(74, 222, 128, 0.2)',
-                }}
-              >
-                <h3 className="text-white font-bold mb-2">📦 PUDO Locker Delivery</h3>
-                <p className="text-gray-400 text-sm">
-                  Your order will be delivered to your selected PUDO locker within 1-4 business days.
-                </p>
-                <p className="text-gray-400 text-sm mt-2">
-                  You'll receive a PIN via SMS to collect your parcel at any time.
-                </p>
-              </div>
             ) : (
-              <div
+              <div 
                 className="p-4 rounded-lg"
                 style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.3)',

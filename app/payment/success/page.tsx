@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
@@ -10,11 +10,8 @@ function PaymentSuccessContent() {
   const { data: session } = useSession()
   const [processing, setProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const hasRun = useRef(false)
 
   useEffect(() => {
-    if (hasRun.current) return
-    hasRun.current = true
     const processPayment = async () => {
       // PayFast redirects back without payment details in URL
       // The actual payment confirmation comes via webhook
@@ -67,11 +64,6 @@ function PaymentSuccessContent() {
             deliveryMethod: checkoutData.deliveryMethod,
             storeId: checkoutData.storeId,
             address: checkoutData.address,
-            pudoLockerCode: checkoutData.pudoLockerCode,
-            pudoLockerName: checkoutData.pudoLockerName,
-            pudoLockerAddress: checkoutData.pudoLockerAddress,
-            pudoServiceLevelCode: checkoutData.pudoServiceLevelCode,
-            pudoRate: checkoutData.shippingCost,
             paymentReference: paymentId,
             subtotal: checkoutData.subtotal,
             shippingCost: checkoutData.shippingCost,
@@ -121,7 +113,7 @@ function PaymentSuccessContent() {
     }
 
     processPayment()
-  }, [])
+  }, [searchParams, session, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">

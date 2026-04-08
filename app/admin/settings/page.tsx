@@ -47,13 +47,6 @@ const INVENTORY_SETTINGS = [
   { key: "disable_stock_checks", label: "Disable Stock Checks", description: "When enabled, customers can add out-of-stock items to their cart and checkout." },
 ]
 
-// pudo_collection_method: "D2L" | "K2L"
-// pudo_kiosk_terminal_id: only required when method is K2L
-const PUDO_COLLECTION_METHODS = [
-  { value: "D2L", label: "Door to Locker — PUDO collects from your store address" },
-  { value: "K2L", label: "Kiosk to Locker — You drop off at a PUDO kiosk" },
-]
-
 export default function SettingsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -116,12 +109,11 @@ export default function SettingsPage() {
         const socialSetting = SOCIAL_MEDIA_SETTINGS.find(s => s.key === key)
         const contactSetting = CONTACT_SETTINGS.find(s => s.key === key)
         const inventorySetting = INVENTORY_SETTINGS.find(s => s.key === key)
-        const isPudo = key.startsWith('pudo_')
-
+        
         return {
           key,
           value,
-          category: socialSetting ? "social" : contactSetting ? "contact" : isPudo ? "pudo" : "general",
+          category: socialSetting ? "social" : contactSetting ? "contact" : "general",
           description: socialSetting?.description || contactSetting?.description || inventorySetting?.description
         }
       })
@@ -405,55 +397,6 @@ export default function SettingsPage() {
                 )}
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* PUDO Settings */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-white">PUDO Delivery Settings</CardTitle>
-            <CardDescription className="text-gray-400">
-              Configure how parcels are collected and sent via PUDO lockers
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Collection Method</label>
-              <div className="flex flex-col gap-2">
-                {PUDO_COLLECTION_METHODS.map(({ value, label }) => (
-                  <label key={value} className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-zinc-700 bg-zinc-800 hover:border-primary transition-colors">
-                    <input
-                      type="radio"
-                      name="pudo_collection_method"
-                      value={value}
-                      checked={(settings['pudo_collection_method'] ?? 'D2L') === value}
-                      onChange={() => handleChange('pudo_collection_method', value)}
-                      className="mt-0.5 accent-green-500"
-                    />
-                    <div>
-                      <span className="text-white font-medium text-sm">{value}</span>
-                      <p className="text-gray-400 text-xs mt-0.5">{label}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {(settings['pudo_collection_method'] ?? 'D2L') === 'K2L' && (
-              <div className="space-y-2">
-                <label htmlFor="pudo_kiosk_terminal_id" className="text-sm font-medium text-white">
-                  Kiosk Terminal ID
-                </label>
-                <Input
-                  id="pudo_kiosk_terminal_id"
-                  placeholder="e.g. CG54"
-                  value={settings['pudo_kiosk_terminal_id'] || ''}
-                  onChange={(e) => handleChange('pudo_kiosk_terminal_id', e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
-                />
-                <p className="text-xs text-gray-500">The terminal_id of the PUDO kiosk where you drop off parcels. Find this in the PUDO locker list.</p>
-              </div>
-            )}
           </CardContent>
         </Card>
 

@@ -123,7 +123,6 @@ export default function RootLayout({
         />
         <meta name="age-gate" content="18+" />
         <meta name="rating" content="adult" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${bebas.variable} ${inter.variable} antialiased`}
