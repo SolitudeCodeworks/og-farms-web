@@ -14,17 +14,37 @@ export async function PUT(request: Request) {
       )
     }
 
-    const { name, phone } = await request.json()
+    const { name, dateOfBirth } = await request.json()
+
+    // Calculate age if dateOfBirth is provided
+    let ageVerified = false
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth)
+      const today = new Date()
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--
+      }
+      
+      ageVerified = age >= 18
+    }
 
     const user = await prisma.user.update({
       where: { email: session.user.email },
       data: {
-        name: name || null,
+        name: name || undefined,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        ageVerified: ageVerified ? true : undefined,
+        verifiedAt: ageVerified ? new Date() : undefined,
       },
       select: {
         id: true,
         email: true,
         name: true,
+        dateOfBirth: true,
+        ageVerified: true,
       },
     })
 

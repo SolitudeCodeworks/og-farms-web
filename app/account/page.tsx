@@ -29,7 +29,8 @@ export default function AccountPage() {
   // User info state
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
+  const [dateOfBirth, setDateOfBirth] = useState("")
+  const [ageVerified, setAgeVerified] = useState(false)
   
   // Address form state
   const [addressForm, setAddressForm] = useState({
@@ -59,7 +60,15 @@ export default function AccountPage() {
         console.log("Account data:", data) // Debug log
         setName(data.user.name || "")
         setEmail(data.user.email || "")
-        setPhone(data.user.phone || "")
+        setAgeVerified(data.user.ageVerified || false)
+        
+        // Format dateOfBirth for input field (YYYY-MM-DD)
+        if (data.user.dateOfBirth) {
+          const date = new Date(data.user.dateOfBirth)
+          const formattedDate = date.toISOString().split('T')[0]
+          setDateOfBirth(formattedDate)
+        }
+        
         setAddresses(data.addresses || [])
       } else {
         console.error("Failed to load account data:", response.status)
@@ -79,10 +88,12 @@ export default function AccountPage() {
       const response = await fetch("/api/account/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone }),
+        body: JSON.stringify({ name, dateOfBirth }),
       })
 
       if (response.ok) {
+        const data = await response.json()
+        setAgeVerified(data.user.ageVerified || false)
         alert("Profile updated successfully!")
       } else {
         alert("Failed to update profile")
@@ -249,16 +260,21 @@ export default function AccountPage() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Phone Number
+                  Date of Birth * (Required for age verification)
                 </label>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+27 XX XXX XXXX"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg bg-white border text-black focus:outline-none focus:border-primary"
                   style={{ borderColor: 'rgba(74, 222, 128, 0.3)' }}
                 />
+                {ageVerified && (
+                  <p className="text-xs text-green-600 mt-1 font-bold">✓ Age verified (18+)</p>
+                )}
+                {dateOfBirth && !ageVerified && (
+                  <p className="text-xs text-red-600 mt-1">Age must be 18+ to purchase</p>
+                )}
               </div>
 
               <button
