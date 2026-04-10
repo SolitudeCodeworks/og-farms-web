@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
@@ -10,8 +10,13 @@ function PaymentSuccessContent() {
   const { data: session } = useSession()
   const [processing, setProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasProcessed = useRef(false)
 
   useEffect(() => {
+    // Guard against React 18 Strict Mode double-invocation
+    if (hasProcessed.current) return
+    hasProcessed.current = true
+
     const processPayment = async () => {
       // PayFast redirects back without payment details in URL
       // The actual payment confirmation comes via webhook

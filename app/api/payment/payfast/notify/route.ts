@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +17,8 @@ export async function POST(request: Request) {
 
     // Extract payment details
     const paymentStatus = data.payment_status
-    const paymentId = data.m_payment_id
-    const pfPaymentId = data.pf_payment_id
+    const paymentId = data.m_payment_id      // our OG-{timestamp} reference
+    const pfPaymentId = data.pf_payment_id   // PayFast's own payment ID
     const amount = data.amount_gross
     const merchantId = data.merchant_id
 
@@ -36,9 +37,20 @@ export async function POST(request: Request) {
       console.log(`PayFast Payment ID: ${pfPaymentId}`)
       console.log(`Amount: R${amount}`)
       
-      // Store the payment confirmation
-      // You could update order status here or store in a temporary cache
-      // For now, we'll just log it since the order is created on the success page
+      // Save pfPaymentId onto the order matched by our paymentReference
+      if (pfPaymentId && paymentId) {
+        try {
+          await prisma.order.updateMany({
+            where: { paymentReference: paymentId },
+            data: { pfPaymentId },
+          })
+          console.log(`Saved pfPaymentId ${pfPaymentId} to order with paymentReference ${paymentId}`)
+        } catch (dbError) {
+          // Order may not exist yet (created on success page) — that is fine, 
+          // the success page can retry or admin can reconcile via the statements page
+          console.warn('Could not update order with pfPaymentId (order may not exist yet):', dbError)
+        }
+      }
       
       return NextResponse.json({ 
         success: true, 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ShoppingCart, Package, Truck, CheckCircle, XCircle, Clock, MapPin, AlertTriangle, Loader2, ChevronLeft, ChevronRight, User, Mail, Phone } from "lucide-react"
+import { ShoppingCart, Package, Truck, CheckCircle, XCircle, Clock, MapPin, AlertTriangle, Loader2, ChevronLeft, ChevronRight, User, Mail, Phone, FileText } from "lucide-react"
 
 interface Order {
   id: string
@@ -698,6 +698,17 @@ export default function OrdersPage() {
                   <User className="w-4 h-4" />
                   Customer Information
                 </button>
+
+                {/* Invoice Button */}
+                <a
+                  href={`/api/invoice/${order.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-lg transition-all border border-zinc-700 flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  View Invoice
+                </a>
 
                 {/* Single Manage Order Button */}
                 {order.status === "COMPLETED" ? (

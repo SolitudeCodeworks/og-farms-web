@@ -105,6 +105,7 @@ model Order {
   customerName    String
   customerPhone   String
   paymentReference String?       // Payment reference (e.g., Paystack reference or 'CASH_PAYMENT')
+  pfPaymentId      String?       // PayFast pf_payment_id returned via IPN (used for statements)
   // Direct address fields for all orders (guest and logged-in)
   deliveryStreet  String?
   deliveryCity    String?
@@ -177,6 +178,7 @@ enum OrderStatus {
 enum FulfillmentType {
   DELIVERY
   PICKUP
+  PUDO
 }
 
 enum DiscountType {

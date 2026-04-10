@@ -13,7 +13,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Receipt
 } from "lucide-react"
 import { useState } from "react"
 
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Stores", href: "/admin/stores", icon: Store },
     { name: "Inventory", href: "/admin/inventory", icon: Package },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
+    { name: "PayFast Statements", href: "/admin/payfast", icon: Receipt },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ]
 

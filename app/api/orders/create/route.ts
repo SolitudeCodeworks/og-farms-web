@@ -59,6 +59,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // Idempotency check — prevent duplicate orders from the same paymentReference
+    if (paymentReference && paymentReference !== 'CASH_PAYMENT') {
+      const existing = await prisma.order.findFirst({
+        where: { paymentReference },
+        select: { id: true, orderNumber: true }
+      })
+      if (existing) {
+        return NextResponse.json({ order: existing, duplicate: true })
+      }
+    }
+
     if (deliveryMethod === 'pickup' && !storeId) {
       return NextResponse.json(
         { error: "Store selection required for pickup" },
