@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Search, Package, X, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Search, Package, X, ChevronRight, CircleHelp } from 'lucide-react'
 import { SUBCATEGORIES } from '@/lib/product-constants'
 
 type BulkPricingRule = {
@@ -59,7 +59,7 @@ export default function BulkPricingAdminPage() {
   const [productSearch, setProductSearch] = useState('')
   const [productResults, setProductResults] = useState<ProductSearchResult[]>([])
   const [productSearching, setProductSearching] = useState(false)
-  const [selectedSubcategory, setSelectedSubcategory] = useState('')
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
 
   useEffect(() => {
     loadRules()
@@ -93,7 +93,13 @@ export default function BulkPricingAdminPage() {
     const timer = setTimeout(async () => {
       try {
         setProductSearching(true)
-        const response = await fetch(`/api/admin/products?search=${encodeURIComponent(trimmed)}&limit=12`)
+        const params = new URLSearchParams()
+        params.set('limit', '24')
+        if (trimmed.length >= 2) {
+          params.set('search', trimmed)
+        }
+
+        const response = await fetch(`/api/admin/products?${params.toString()}`)
         if (response.ok) {
           const data = await response.json()
           setProductResults((data.products || []).filter((product: ProductSearchResult) => {
@@ -219,9 +225,7 @@ export default function BulkPricingAdminPage() {
 
   const openSubcategorySetup = (subcategory: string) => {
     setConfigureOpen(false)
-    setMessage(`Showing deals for ${subcategory}. Select a product in Products and open Bulk Pricing to configure its tiers.`)
-    setSearchQuery(subcategory)
-    router.push(`/admin/products?search=${encodeURIComponent(subcategory)}`)
+    router.push(`/admin/bulk-pricing/subcategory/${encodeURIComponent(subcategory)}`)
   }
 
   return (
@@ -245,14 +249,21 @@ export default function BulkPricingAdminPage() {
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() => setConfigureOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-bold text-black transition-colors hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-bold text-white transition-colors hover:bg-primary/90"
         >
           Configure Bulk Pricing
           <ChevronRight className="w-4 h-4" />
         </button>
         <span className="text-sm text-gray-500">
-          Search for a product or choose a subcategory to jump to setup.
+          Search a product for one-off setup, or choose a subcategory for category-wide deals.
         </span>
+        <button
+          onClick={() => setShowHowItWorks(true)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80"
+        >
+          <CircleHelp className="h-4 w-4" />
+          How this works
+        </button>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
@@ -269,7 +280,7 @@ export default function BulkPricingAdminPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search product, category, subcategory..."
-              className="w-full pl-9 pr-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:outline-none focus:border-primary"
+              className="w-full pl-9 pr-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder:text-gray-400 focus:outline-none focus:border-primary"
             />
           </div>
         </div>
@@ -392,7 +403,7 @@ export default function BulkPricingAdminPage() {
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="flex-1 rounded-full bg-primary px-4 py-3 font-bold text-black transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="flex-1 rounded-full bg-primary px-4 py-3 font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -413,7 +424,7 @@ export default function BulkPricingAdminPage() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-white">Configure Bulk Pricing</h3>
-                <p className="text-sm text-gray-400">Find a product quickly or choose a subcategory group.</p>
+                <p className="text-sm text-gray-400">Find one product quickly or configure all products in a subcategory.</p>
               </div>
               <button
                 onClick={() => setConfigureOpen(false)}
@@ -425,14 +436,16 @@ export default function BulkPricingAdminPage() {
 
             <div className="mb-5 flex gap-2 rounded-full bg-zinc-900 p-1">
               <button
-                onClick={() => setConfigureMode('product')}
-                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'product' ? 'bg-primary text-black' : 'text-gray-300 hover:text-white'}`}
+                onClick={() => {
+                  setConfigureMode('product')
+                }}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'product' ? 'bg-primary text-white' : 'text-gray-300 hover:text-white'}`}
               >
                 Search Product
               </button>
               <button
                 onClick={() => setConfigureMode('subcategory')}
-                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'subcategory' ? 'bg-primary text-black' : 'text-gray-300 hover:text-white'}`}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'subcategory' ? 'bg-primary text-white' : 'text-gray-300 hover:text-white'}`}
               >
                 Choose Subcategory
               </button>
@@ -447,7 +460,7 @@ export default function BulkPricingAdminPage() {
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     placeholder="Start typing a product name..."
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-3 pl-9 pr-4 text-white focus:border-primary focus:outline-none"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-3 pl-9 pr-4 text-white placeholder:text-gray-400 focus:border-primary focus:outline-none"
                   />
                 </div>
 
@@ -489,13 +502,69 @@ export default function BulkPricingAdminPage() {
                   >
                     <div>
                       <div className="font-semibold text-white">{subcategory.label}</div>
-                      <div className="text-sm text-gray-400">Use this to find products in that group</div>
+                      <div className="text-sm text-gray-400">Set one tier ladder and apply it to all products in this subcategory</div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-500" />
                   </button>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showHowItWorks && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-white">How Bulk Pricing Works</h3>
+                <p className="text-sm text-gray-400">Set one-off product deals or apply one ladder to a full subcategory.</p>
+              </div>
+              <button
+                onClick={() => setShowHowItWorks(false)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-zinc-800 hover:text-white"
+                aria-label="Close help modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm text-gray-300">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+                <p className="font-semibold text-white">Option 1: Product-specific deal</p>
+                <p>Use Search Product, open one product, then set tiers only for that product.</p>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+                <p className="font-semibold text-white">Option 2: Category-wide deal</p>
+                <p>Use Choose Subcategory, define one tier ladder, then apply to all products in that subcategory.</p>
+              </div>
+
+              <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+                <p className="font-semibold text-white">Example Ladder</p>
+                <p>1 unit - R65</p>
+                <p>2 units - R120</p>
+                <p>3+ units - R170</p>
+                <p className="mt-2 text-gray-300">At checkout, the highest matching tier is used for the quantity in cart.</p>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+                <p className="font-semibold text-white">Tier Rules</p>
+                <p>Min quantity is required.</p>
+                <p>Max quantity is optional; leave blank to make the tier open-ended.</p>
+                <p>Tier price is the total price for that tier quantity range.</p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={() => setShowHowItWorks(false)}
+                className="w-full rounded-full bg-primary px-4 py-3 font-bold text-white transition-colors hover:bg-primary/90"
+              >
+                Got It
+              </button>
+            </div>
           </div>
         </div>
       )}

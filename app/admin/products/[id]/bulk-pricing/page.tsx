@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { CircleHelp } from 'lucide-react'
 
 export default function ProductBulkPricingPage() {
   const params = useParams()
@@ -137,43 +138,73 @@ export default function ProductBulkPricingPage() {
           <h3 className="font-semibold mb-4 text-white">Add New Tier</h3>
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Min Quantity (g)</label>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-300">Min Quantity (g)</label>
+                <button
+                  type="button"
+                  title="Minimum quantity where this tier starts."
+                  className="text-gray-400 hover:text-white"
+                  aria-label="Min quantity help"
+                >
+                  <CircleHelp className="h-4 w-4" />
+                </button>
+              </div>
               <input
                 type="number"
                 min="1"
                 value={newRule.minQuantity}
                 onChange={(e) => setNewRule({...newRule, minQuantity: e.target.value})}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-gray-400 outline-none focus:border-primary"
                 placeholder="e.g. 3"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Max Quantity (g, optional)</label>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-300">Max Quantity (g, optional)</label>
+                <button
+                  type="button"
+                  title="Optional upper limit for this tier. Leave empty to make it open-ended."
+                  className="text-gray-400 hover:text-white"
+                  aria-label="Max quantity help"
+                >
+                  <CircleHelp className="h-4 w-4" />
+                </button>
+              </div>
               <input
                 type="number"
                 min="1"
                 value={newRule.maxQuantity}
                 onChange={(e) => setNewRule({...newRule, maxQuantity: e.target.value})}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-gray-400 outline-none focus:border-primary"
                 placeholder="Leave empty for open-ended"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Tier Price (R)</label>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-300">Tier Price (R)</label>
+                <button
+                  type="button"
+                  title="Total price charged when cart quantity falls in this tier range."
+                  className="text-gray-400 hover:text-white"
+                  aria-label="Tier price help"
+                >
+                  <CircleHelp className="h-4 w-4" />
+                </button>
+              </div>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={newRule.tierPrice}
                 onChange={(e) => setNewRule({...newRule, tierPrice: e.target.value})}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-gray-400 outline-none focus:border-primary"
                 placeholder="e.g. 100"
               />
             </div>
           </div>
           <button
             onClick={handleAddRule}
-            className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-black hover:bg-primary/90"
+            className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white hover:bg-primary/90"
           >
             Add Tier
           </button>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import type { Prisma } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { cache, cacheKeys } from "@/lib/cache"
@@ -20,9 +21,15 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
+    const subcategory = searchParams.get('subcategory') || ''
 
     // Generate cache key based on query params
-    const cacheKey = cacheKeys.products({ page: page.toString(), limit: limit.toString(), search })
+    const cacheKey = cacheKeys.products({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      subcategory,
+    })
 
     // Check cache first
     const cachedResult = cache.get(cacheKey)
@@ -33,15 +40,17 @@ export async function GET(request: Request) {
     const skip = (page - 1) * limit
 
     // Build search filter
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-            { slug: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}
+    const where: Prisma.ProductWhereInput = {}
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+    if (subcategory) {
+      where.subcategory = { equals: subcategory, mode: 'insensitive' }
+    }
 
     // Get total count for pagination
     const total = await prisma.product.count({ where })
