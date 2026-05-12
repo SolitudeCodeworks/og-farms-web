@@ -120,6 +120,12 @@ export async function POST(
           { status: 400 }
         )
       }
+      if (rule.maxQuantity !== null && rule.maxQuantity !== undefined && rule.maxQuantity !== '' && Number(rule.maxQuantity) < Number(rule.minQuantity)) {
+        return NextResponse.json(
+          { error: "Max quantity must be greater than or equal to min quantity" },
+          { status: 400 }
+        )
+      }
       if (!rule.tierPrice || rule.tierPrice <= 0) {
         return NextResponse.json(
           { error: "All tiers must have tierPrice > 0" },

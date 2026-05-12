@@ -6,6 +6,7 @@
  */
 
 import { prisma } from "./prisma"
+import type { BulkPricingRule as PrismaBulkPricingRule } from "@prisma/client"
 
 /**
  * Range classification mapping based on product subcategory
@@ -44,6 +45,7 @@ export interface BulkTierMatch {
   maxQuantity: number | null
   tierPrice: number
   appliedFrom: "product-override" | "range-default"
+  coveredQuantity: number
 }
 
 export interface PricingBreakdown {
@@ -70,39 +72,44 @@ export async function calculateLinePrice(
   // Resolve range
   const range = getProductRange(category, subcategory)
 
+  const pickBestTierRule = async (where: {
+    productId?: string
+    rangeKey?: string | null
+  }): Promise<PrismaBulkPricingRule | null> => {
+    const matchingRules = await prisma.bulkPricingRule.findMany({
+      where: {
+        ...where,
+        isActive: true,
+        minQuantity: { lte: quantity },
+      },
+    })
+
+    return matchingRules.sort((left, right) => {
+      if (right.minQuantity !== left.minQuantity) {
+        return right.minQuantity - left.minQuantity
+      }
+
+      const leftMax = left.maxQuantity ?? Number.POSITIVE_INFINITY
+      const rightMax = right.maxQuantity ?? Number.POSITIVE_INFINITY
+      return leftMax - rightMax
+    })[0] || null
+  }
+
   // Check for product-level override first (takes precedence)
-  let tierRule = null
+  let tierRule: PrismaBulkPricingRule | null = null
   
   if (category === "FLOWER" || category === "PRE_ROLLS") {
-    tierRule = await prisma.bulkPricingRule.findFirst({
-      where: {
-        productId,
-        isActive: true,
-        rangeKey: null, // Product override has no rangeKey
-        minQuantity: { lte: quantity },
-        OR: [
-          { maxQuantity: null }, // Unlimited
-          { maxQuantity: { gte: quantity } } // Within range
-        ]
-      },
-      orderBy: { minQuantity: "desc" }, // Get highest matching tier
+    tierRule = await pickBestTierRule({
+      productId,
+      rangeKey: null, // Product override has no rangeKey
     })
   }
 
   // Fall back to range default if no product override
   let appliedFrom: "product-override" | "range-default" = "product-override"
   if (!tierRule && range) {
-    tierRule = await prisma.bulkPricingRule.findFirst({
-      where: {
-        rangeKey: range,
-        isActive: true,
-        minQuantity: { lte: quantity },
-        OR: [
-          { maxQuantity: null },
-          { maxQuantity: { gte: quantity } }
-        ]
-      },
-      orderBy: { minQuantity: "desc" },
+    tierRule = await pickBestTierRule({
+      rangeKey: range,
     })
     appliedFrom = "range-default"
   }
@@ -112,21 +119,33 @@ export async function calculateLinePrice(
   let bulkDiscount = 0
 
   if (tierRule) {
-    effectivePrice = tierRule.tierPrice
-    bulkDiscount = basePrice * quantity - tierRule.tierPrice
+    const coveredQuantity = tierRule.maxQuantity === null
+      ? tierRule.minQuantity
+      : Math.min(quantity, tierRule.maxQuantity)
+
+    effectivePrice = tierRule.tierPrice + Math.max(0, quantity - coveredQuantity) * basePrice
+    bulkDiscount = basePrice * quantity - effectivePrice
+
+    return {
+      basePrice,
+      quantity,
+      bulkTier: {
+        minQuantity: tierRule.minQuantity,
+        maxQuantity: tierRule.maxQuantity,
+        tierPrice: tierRule.tierPrice,
+        appliedFrom,
+        coveredQuantity,
+      },
+      subtotal: basePrice * quantity,
+      bulkDiscount,
+      effectivePrice,
+    }
   }
 
   return {
     basePrice,
     quantity,
-    bulkTier: tierRule
-      ? {
-          minQuantity: tierRule.minQuantity,
-          maxQuantity: tierRule.maxQuantity,
-          tierPrice: tierRule.tierPrice,
-          appliedFrom,
-        }
-      : null,
+    bulkTier: null,
     subtotal: basePrice * quantity,
     bulkDiscount,
     effectivePrice,
@@ -191,6 +210,13 @@ export function validateTierRules(
   for (let i = 0; i < sorted.length - 1; i++) {
     const current = sorted[i]
     const next = sorted[i + 1]
+
+    if (current.maxQuantity !== null && current.maxQuantity < current.minQuantity) {
+      return {
+        valid: false,
+        error: `Tier max quantity must be greater than or equal to min quantity for ${current.minQuantity}`,
+      }
+    }
 
     // Check for duplicate minQuantity
     if (current.minQuantity === next.minQuantity) {

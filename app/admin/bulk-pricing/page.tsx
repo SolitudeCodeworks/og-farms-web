@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Trash2, Search, Package } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Edit, Trash2, Search, Package, X, ChevronRight } from 'lucide-react'
+import { SUBCATEGORIES } from '@/lib/product-constants'
 
 type BulkPricingRule = {
   id: string
@@ -27,6 +29,15 @@ type EditFormState = {
   tierPrice: string
 }
 
+type ProductSearchResult = {
+  id: string
+  name: string
+  slug: string
+  category: string
+  subcategory: string | null
+  price: number
+}
+
 const DEFAULT_EDIT_FORM: EditFormState = {
   minQuantity: '',
   maxQuantity: '',
@@ -34,6 +45,7 @@ const DEFAULT_EDIT_FORM: EditFormState = {
 }
 
 export default function BulkPricingAdminPage() {
+  const router = useRouter()
   const [rules, setRules] = useState<BulkPricingRule[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -42,6 +54,14 @@ export default function BulkPricingAdminPage() {
   const [message, setMessage] = useState('')
   const [editingRule, setEditingRule] = useState<BulkPricingRule | null>(null)
   const [editForm, setEditForm] = useState<EditFormState>(DEFAULT_EDIT_FORM)
+  const [editUnlimited, setEditUnlimited] = useState(false)
+  const [showUnlimitedWarning, setShowUnlimitedWarning] = useState(false)
+  const [configureOpen, setConfigureOpen] = useState(false)
+  const [configureMode, setConfigureMode] = useState<'product' | 'subcategory'>('product')
+  const [productSearch, setProductSearch] = useState('')
+  const [productResults, setProductResults] = useState<ProductSearchResult[]>([])
+  const [productSearching, setProductSearching] = useState(false)
+  const [selectedSubcategory, setSelectedSubcategory] = useState('')
 
   useEffect(() => {
     loadRules()
@@ -54,10 +74,48 @@ export default function BulkPricingAdminPage() {
         maxQuantity: editingRule.maxQuantity?.toString() || '',
         tierPrice: editingRule.tierPrice.toString(),
       })
+      setEditUnlimited(editingRule.maxQuantity === null)
     } else {
       setEditForm(DEFAULT_EDIT_FORM)
+      setEditUnlimited(false)
     }
   }, [editingRule])
+
+  useEffect(() => {
+    const trimmed = productSearch.trim()
+
+    if (!configureOpen || configureMode !== 'product') {
+      setProductResults([])
+      return
+    }
+
+    if (trimmed.length < 2) {
+      setProductResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setProductSearching(true)
+        const response = await fetch(`/api/admin/products?search=${encodeURIComponent(trimmed)}&limit=12`)
+        if (response.ok) {
+          const data = await response.json()
+          setProductResults((data.products || []).filter((product: ProductSearchResult) => {
+            return product.category === 'FLOWER' || product.category === 'PRE_ROLLS'
+          }))
+        } else {
+          setProductResults([])
+        }
+      } catch (error) {
+        console.error('Error searching products:', error)
+        setProductResults([])
+      } finally {
+        setProductSearching(false)
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [productSearch, configureOpen, configureMode])
 
   const loadRules = async () => {
     try {
@@ -108,7 +166,7 @@ export default function BulkPricingAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           minQuantity: editForm.minQuantity,
-          maxQuantity: editForm.maxQuantity,
+          maxQuantity: editUnlimited ? null : editForm.maxQuantity,
           tierPrice: editForm.tierPrice,
         }),
       })
@@ -158,6 +216,28 @@ export default function BulkPricingAdminPage() {
     }
   }
 
+  const openProductBulkPricing = (productId: string) => {
+    setConfigureOpen(false)
+    router.push(`/admin/products/${productId}/bulk-pricing`)
+  }
+
+  const openSubcategorySetup = (subcategory: string) => {
+    setConfigureOpen(false)
+    setMessage(`Showing deals for ${subcategory}. Select a product in Products and open Bulk Pricing to configure its tiers.`)
+    setSearchQuery(subcategory)
+    router.push(`/admin/products?search=${encodeURIComponent(subcategory)}`)
+  }
+
+  const handleEditUnlimitedChange = (checked: boolean) => {
+    if (checked) {
+      setShowUnlimitedWarning(true)
+      return
+    }
+
+    setEditUnlimited(false)
+    setEditForm((prev) => ({ ...prev, maxQuantity: '' }))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -175,6 +255,19 @@ export default function BulkPricingAdminPage() {
           {message}
         </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => setConfigureOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-bold text-black transition-colors hover:bg-primary/90"
+        >
+          Configure Bulk Pricing
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <span className="text-sm text-gray-500">
+          Search for a product or choose a subcategory to jump to setup.
+        </span>
+      </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
@@ -228,7 +321,7 @@ export default function BulkPricingAdminPage() {
                       {rule.product.subcategory ? ` / ${rule.product.subcategory}` : ''}
                     </td>
                     <td className="py-4 pr-4 text-sm text-gray-300">
-                      {rule.maxQuantity ? `${rule.minQuantity} - ${rule.maxQuantity}` : `${rule.minQuantity}+`}
+                      {rule.maxQuantity ? `${rule.minQuantity} - ${rule.maxQuantity}` : `${rule.minQuantity}+ (Unlimited)`}
                     </td>
                     <td className="py-4 pr-4 text-sm text-primary font-semibold">
                       R{rule.tierPrice.toFixed(2)}
@@ -287,14 +380,26 @@ export default function BulkPricingAdminPage() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-gray-300">Max Quantity</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={editForm.maxQuantity}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, maxQuantity: e.target.value }))}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white focus:border-primary focus:outline-none"
-                  placeholder="Optional"
-                />
+                <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-900 p-3">
+                  <label className="flex items-center gap-3 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={editUnlimited}
+                      onChange={(e) => handleEditUnlimitedChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-zinc-600 text-primary"
+                    />
+                    Unlimited
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editForm.maxQuantity}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, maxQuantity: e.target.value }))}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white focus:border-primary focus:outline-none disabled:bg-zinc-800 disabled:text-gray-500"
+                    placeholder={editUnlimited ? 'Unlimited selected' : 'Optional'}
+                    disabled={editUnlimited}
+                  />
+                </div>
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-gray-300">Tier Price</span>
@@ -324,6 +429,129 @@ export default function BulkPricingAdminPage() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showUnlimitedWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-white">Unlimited tier rule</h3>
+            <p className="mt-2 text-sm text-gray-400">
+              Unlimited means the bulk price only covers the minimum bundle size.
+              Any quantity above that minimum will fall back to the regular product price.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setEditUnlimited(true)
+                  setEditForm((prev) => ({ ...prev, maxQuantity: '' }))
+                  setShowUnlimitedWarning(false)
+                }}
+                className="flex-1 rounded-full bg-primary px-4 py-3 font-bold text-black transition-colors hover:bg-primary/90"
+              >
+                I Understand
+              </button>
+              <button
+                onClick={() => setShowUnlimitedWarning(false)}
+                className="flex-1 rounded-full bg-zinc-800 px-4 py-3 font-bold text-white transition-colors hover:bg-zinc-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {configureOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-3xl rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-white">Configure Bulk Pricing</h3>
+                <p className="text-sm text-gray-400">Find a product quickly or choose a subcategory group.</p>
+              </div>
+              <button
+                onClick={() => setConfigureOpen(false)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-zinc-800 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-5 flex gap-2 rounded-full bg-zinc-900 p-1">
+              <button
+                onClick={() => setConfigureMode('product')}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'product' ? 'bg-primary text-black' : 'text-gray-300 hover:text-white'}`}
+              >
+                Search Product
+              </button>
+              <button
+                onClick={() => setConfigureMode('subcategory')}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${configureMode === 'subcategory' ? 'bg-primary text-black' : 'text-gray-300 hover:text-white'}`}
+              >
+                Choose Subcategory
+              </button>
+            </div>
+
+            {configureMode === 'product' ? (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Start typing a product name..."
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-3 pl-9 pr-4 text-white focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="max-h-80 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900">
+                  {productSearching ? (
+                    <div className="p-4 text-sm text-gray-400">Searching products...</div>
+                  ) : productResults.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-400">
+                      Type at least 2 characters to search products.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-800">
+                      {productResults.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => openProductBulkPricing(product.id)}
+                          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-zinc-800"
+                        >
+                          <div>
+                            <div className="font-semibold text-white">{product.name}</div>
+                            <div className="text-sm text-gray-400">
+                              {product.category}{product.subcategory ? ` / ${product.subcategory}` : ''} · R{product.price.toFixed(2)}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-500" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {SUBCATEGORIES.map((subcategory) => (
+                  <button
+                    key={subcategory.value}
+                    onClick={() => openSubcategorySetup(subcategory.value)}
+                    className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4 text-left transition-colors hover:border-primary hover:bg-primary/10"
+                  >
+                    <div>
+                      <div className="font-semibold text-white">{subcategory.label}</div>
+                      <div className="text-sm text-gray-400">Use this to find products in that group</div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

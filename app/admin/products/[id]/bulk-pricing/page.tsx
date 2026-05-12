@@ -16,6 +16,8 @@ export default function ProductBulkPricingPage() {
     maxQuantity: '',
     tierPrice: ''
   })
+  const [unlimited, setUnlimited] = useState(false)
+  const [showUnlimitedWarning, setShowUnlimitedWarning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -48,13 +50,24 @@ export default function ProductBulkPricingPage() {
 
     const rule = {
       minQuantity: parseInt(newRule.minQuantity),
-      maxQuantity: newRule.maxQuantity ? parseInt(newRule.maxQuantity) : null,
+      maxQuantity: unlimited ? null : (newRule.maxQuantity ? parseInt(newRule.maxQuantity) : null),
       tierPrice: parseFloat(newRule.tierPrice)
     }
 
     setRules([...rules, rule].sort((a, b) => a.minQuantity - b.minQuantity))
     setNewRule({ minQuantity: '', maxQuantity: '', tierPrice: '' })
+    setUnlimited(false)
     setMessage('')
+  }
+
+  const handleUnlimitedChange = (checked: boolean) => {
+    if (checked) {
+      setShowUnlimitedWarning(true)
+      return
+    }
+
+    setUnlimited(false)
+    setNewRule((prev) => ({ ...prev, maxQuantity: '' }))
   }
 
   const handleRemoveRule = (index: number) => {
@@ -117,7 +130,7 @@ export default function ProductBulkPricingPage() {
               <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
                 <div className="flex-1">
                   <span className="font-mono text-sm">
-                    {rule.minQuantity}g {rule.maxQuantity ? `- ${rule.maxQuantity}g` : '+'} → R{rule.tierPrice}
+                    {rule.maxQuantity ? `${rule.minQuantity}g - ${rule.maxQuantity}g` : `${rule.minQuantity}g+`} → R{rule.tierPrice}
                   </span>
                 </div>
                 <button
@@ -149,14 +162,26 @@ export default function ProductBulkPricingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Max Quantity (g, optional)</label>
-              <input
-                type="number"
-                min="1"
-                value={newRule.maxQuantity}
-                onChange={(e) => setNewRule({...newRule, maxQuantity: e.target.value})}
-                className="w-full px-3 py-2 border rounded"
-                placeholder="Leave empty for unlimited"
-              />
+              <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+                <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={unlimited}
+                    onChange={(e) => handleUnlimitedChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                  />
+                  Unlimited
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newRule.maxQuantity}
+                  onChange={(e) => setNewRule({...newRule, maxQuantity: e.target.value})}
+                  className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:text-gray-400"
+                  placeholder={unlimited ? 'Unlimited selected' : 'Leave empty for unlimited'}
+                  disabled={unlimited}
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Tier Price (R)</label>
@@ -178,6 +203,36 @@ export default function ProductBulkPricingPage() {
             Add Tier
           </button>
         </div>
+
+        {showUnlimitedWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Unlimited bulk tier</h3>
+              <p className="text-sm text-gray-600 mb-5">
+                With Unlimited enabled, the bulk price only covers the minimum bundle size.
+                Any units above that minimum are charged at the regular product price.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setUnlimited(true)
+                    setNewRule((prev) => ({ ...prev, maxQuantity: '' }))
+                    setShowUnlimitedWarning(false)
+                  }}
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                >
+                  I Understand
+                </button>
+                <button
+                  onClick={() => setShowUnlimitedWarning(false)}
+                  className="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-semibold text-gray-800 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4">
