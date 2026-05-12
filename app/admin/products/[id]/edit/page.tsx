@@ -540,6 +540,12 @@ export default function EditProductPage() {
             >
               Cancel
             </Link>
+            <Link
+              href={`/admin/products/${productId}/bulk-pricing`}
+              className="flex-1 py-3 px-6 rounded-full font-bold text-center bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+            >
+              Bulk Pricing
+            </Link>
           </div>
         </form>
       </div>

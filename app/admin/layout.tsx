@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  Receipt
+  Receipt,
+  Tags
 } from "lucide-react"
 import { useState } from "react"
 
@@ -53,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Products", href: "/admin/products", icon: Package },
+    { name: "Bulk Pricing", href: "/admin/bulk-pricing", icon: Tags },
     { name: "Stores", href: "/admin/stores", icon: Store },
     { name: "Inventory", href: "/admin/inventory", icon: Package },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },

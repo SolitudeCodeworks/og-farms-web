@@ -309,6 +309,13 @@ export default function ProductsPage() {
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
+                        <Link
+                          href={`/admin/products/${product.id}/bulk-pricing`}
+                          className="px-3 py-2 text-xs font-semibold rounded-lg bg-zinc-800 text-gray-300 hover:bg-primary/20 hover:text-primary transition-colors"
+                          title="Bulk Pricing"
+                        >
+                          Bulk
+                        </Link>
                         <button
                           onClick={() => setDeleteModal({ show: true, product })}
                           className="p-2 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg transition-colors"
