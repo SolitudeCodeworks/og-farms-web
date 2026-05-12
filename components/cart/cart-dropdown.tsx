@@ -9,7 +9,7 @@ import { X } from 'lucide-react'
 
 export function CartDropdown() {
   const { data: session } = useSession()
-  const { items, removeItem, totalPrice } = useCart()
+  const { items, removeItem, totalPrice, linePricingById, bulkDiscountAmount } = useCart()
   const loading = false
 
   if (loading) {
@@ -50,6 +50,13 @@ export function CartDropdown() {
     <div className="w-80 max-h-96 overflow-y-auto">
       <div className="p-4 space-y-4">
         {items.map((item) => (
+          (() => {
+            const linePricing = linePricingById[item.id]
+            const lineTotal = linePricing ? linePricing.lineTotal : item.price * item.quantity
+            const baseLineTotal = linePricing ? linePricing.baseLineTotal : item.price * item.quantity
+            const hasDiscount = linePricing ? linePricing.bulkDiscount > 0 : false
+
+            return (
             <div
               key={item.id}
               className="flex gap-3 p-3 rounded-lg"
@@ -70,8 +77,18 @@ export function CartDropdown() {
                 <h4 className="text-sm font-bold text-white truncate">{item.name}</h4>
                 {item.category && <p className="text-xs text-gray-400">{item.category}</p>}
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-sm font-bold text-primary">
-                    {formatPrice(item.price)} x {item.quantity}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-primary">
+                      {formatPrice(lineTotal)}
+                    </span>
+                    {hasDiscount && (
+                      <span className="text-xs text-gray-400 line-through">
+                        {formatPrice(baseLineTotal)}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-300">
+                    x {item.quantity}
                   </span>
                 </div>
               </div>
@@ -82,6 +99,8 @@ export function CartDropdown() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+            )
+          })()
           ))}
       </div>
 
@@ -95,6 +114,11 @@ export function CartDropdown() {
             {formatPrice(totalPrice)}
           </span>
         </div>
+        {bulkDiscountAmount > 0 && (
+          <p className="mb-4 text-xs text-green-400">
+            Bulk savings applied: {formatPrice(bulkDiscountAmount)}
+          </p>
+        )}
         <div className="space-y-3">
           <Link href="/checkout" className="block">
             <button

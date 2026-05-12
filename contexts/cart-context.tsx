@@ -12,6 +12,14 @@ interface CartItem {
   category: string
 }
 
+interface LinePricing {
+  productId: string
+  lineTotal: number
+  baseLineTotal: number
+  bulkDiscount: number
+  effectiveUnitPrice: number
+}
+
 interface CartContextType {
   items: CartItem[]
   addItem: (item: Omit<CartItem, 'quantity'>) => void
@@ -20,6 +28,8 @@ interface CartContextType {
   clearCart: () => void
   totalItems: number
   totalPrice: number
+  bulkDiscountAmount: number
+  linePricingById: Record<string, LinePricing>
   syncWithDB: () => Promise<void>
 }
 
@@ -29,6 +39,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession()
   const [items, setItems] = useState<CartItem[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
+  const [linePricingById, setLinePricingById] = useState<Record<string, LinePricing>>({})
+  const [bulkDiscountAmount, setBulkDiscountAmount] = useState(0)
 
   // On mount: Load from DB if logged in, otherwise from localStorage
   useEffect(() => {
@@ -104,6 +116,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isInitialized, session])
 
+  useEffect(() => {
+    const calculateCartPricing = async () => {
+      if (!isInitialized) return
+
+      if (items.length === 0) {
+        setLinePricingById({})
+        setBulkDiscountAmount(0)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/cart/pricing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              productId: item.id,
+              quantity: item.quantity,
+            })),
+          }),
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        const pricingMap: Record<string, LinePricing> = {}
+
+        for (const line of data.lineItems || []) {
+          pricingMap[line.productId] = {
+            productId: line.productId,
+            lineTotal: Number(line.lineTotal || 0),
+            baseLineTotal: Number(line.baseLineTotal || 0),
+            bulkDiscount: Number(line.bulkDiscount || 0),
+            effectiveUnitPrice: Number(line.effectiveUnitPrice || 0),
+          }
+        }
+
+        setLinePricingById(pricingMap)
+        setBulkDiscountAmount(Number(data.bulkDiscountAmount || 0))
+      } catch (error) {
+        console.error('Error calculating cart pricing:', error)
+      }
+    }
+
+    calculateCartPricing()
+  }, [items, isInitialized])
+
   // Sync to DB for logged-in users
   const syncToDatabase = async (updatedItems: CartItem[]) => {
     if (!session?.user) return
@@ -178,7 +239,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalPrice = items.reduce((sum, item) => {
+    const pricedLine = linePricingById[item.id]
+    if (pricedLine) {
+      return sum + pricedLine.lineTotal
+    }
+    return sum + item.price * item.quantity
+  }, 0)
 
   return (
     <CartContext.Provider
@@ -190,6 +257,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        bulkDiscountAmount,
+        linePricingById,
         syncWithDB,
       }}
     >
