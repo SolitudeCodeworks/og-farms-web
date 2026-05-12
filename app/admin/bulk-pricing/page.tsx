@@ -375,7 +375,7 @@ export default function BulkPricingAdminPage() {
                   min="1"
                   value={editForm.minQuantity}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, minQuantity: e.target.value }))}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white focus:border-primary focus:outline-none"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-primary"
                 />
               </label>
               <label className="block">
@@ -386,7 +386,7 @@ export default function BulkPricingAdminPage() {
                       type="checkbox"
                       checked={editUnlimited}
                       onChange={(e) => handleEditUnlimitedChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-zinc-600 text-primary"
+                      className="h-4 w-4 rounded border-zinc-600 text-primary focus:ring-primary"
                     />
                     Unlimited
                   </label>
@@ -395,7 +395,7 @@ export default function BulkPricingAdminPage() {
                     min="1"
                     value={editForm.maxQuantity}
                     onChange={(e) => setEditForm((prev) => ({ ...prev, maxQuantity: e.target.value }))}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white focus:border-primary focus:outline-none disabled:bg-zinc-800 disabled:text-gray-500"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-gray-500"
                     placeholder={editUnlimited ? 'Unlimited selected' : 'Optional'}
                     disabled={editUnlimited}
                   />
@@ -409,7 +409,7 @@ export default function BulkPricingAdminPage() {
                   step="0.01"
                   value={editForm.tierPrice}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, tierPrice: e.target.value }))}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white focus:border-primary focus:outline-none"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-primary"
                 />
               </label>
             </div>
@@ -512,7 +512,7 @@ export default function BulkPricingAdminPage() {
                     <div className="p-4 text-sm text-gray-400">Searching products...</div>
                   ) : productResults.length === 0 ? (
                     <div className="p-4 text-sm text-gray-400">
-                      Type at least 2 characters to search products.
+                      Type at least 2 characters to search eligible products.
                     </div>
                   ) : (
                     <div className="divide-y divide-zinc-800">

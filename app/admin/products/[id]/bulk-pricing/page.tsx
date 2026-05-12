@@ -106,36 +106,36 @@ export default function ProductBulkPricingPage() {
   if (loading) return <div className="p-6">Loading...</div>
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 text-white">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Bulk Pricing Rules</h1>
-        <p className="text-gray-600">
+        <p className="text-gray-400">
           {product?.name} ({product?.category})
         </p>
         <p className="text-sm text-gray-500 mt-1">Base price: R{product?.price}</p>
       </div>
 
       {message && (
-        <div className={`mb-4 p-4 rounded ${message.includes('✓') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        <div className={`mb-4 rounded-lg border p-4 ${message.includes('✓') ? 'border-green-500/30 bg-green-500/10 text-green-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
           {message}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Current Pricing Tiers</h2>
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 mb-6 shadow-2xl">
+        <h2 className="text-lg font-semibold mb-4 text-white">Current Pricing Tiers</h2>
         
         {rules.length > 0 ? (
           <div className="space-y-2 mb-6">
             {rules.map((rule, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                 <div className="flex-1">
-                  <span className="font-mono text-sm">
+                  <span className="font-mono text-sm text-gray-200">
                     {rule.maxQuantity ? `${rule.minQuantity}g - ${rule.maxQuantity}g` : `${rule.minQuantity}g+`} → R{rule.tierPrice}
                   </span>
                 </div>
                 <button
                   onClick={() => handleRemoveRule(idx)}
-                  className="text-red-600 hover:text-red-800 text-sm ml-4"
+                  className="ml-4 text-sm text-red-400 hover:text-red-300"
                 >
                   Remove
                 </button>
@@ -143,32 +143,32 @@ export default function ProductBulkPricingPage() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 mb-6">No pricing tiers configured yet</p>
+          <p className="mb-6 text-gray-400">No pricing tiers configured yet</p>
         )}
 
-        <div className="border-t pt-6">
-          <h3 className="font-semibold mb-4">Add New Tier</h3>
+        <div className="border-t border-zinc-800 pt-6">
+          <h3 className="font-semibold mb-4 text-white">Add New Tier</h3>
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Min Quantity (g)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-300">Min Quantity (g)</label>
               <input
                 type="number"
                 min="1"
                 value={newRule.minQuantity}
                 onChange={(e) => setNewRule({...newRule, minQuantity: e.target.value})}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary"
                 placeholder="e.g. 3"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Max Quantity (g, optional)</label>
-              <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-                <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-300">Max Quantity (g, optional)</label>
+              <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-950 p-3">
+                <label className="flex items-center gap-3 text-sm font-medium text-gray-200">
                   <input
                     type="checkbox"
                     checked={unlimited}
                     onChange={(e) => handleUnlimitedChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                    className="h-4 w-4 rounded border-zinc-600 text-primary focus:ring-primary"
                   />
                   Unlimited
                 </label>
@@ -177,28 +177,28 @@ export default function ProductBulkPricingPage() {
                   min="1"
                   value={newRule.maxQuantity}
                   onChange={(e) => setNewRule({...newRule, maxQuantity: e.target.value})}
-                  className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:text-gray-400"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-gray-500"
                   placeholder={unlimited ? 'Unlimited selected' : 'Leave empty for unlimited'}
                   disabled={unlimited}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Tier Price (R)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-300">Tier Price (R)</label>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={newRule.tierPrice}
                 onChange={(e) => setNewRule({...newRule, tierPrice: e.target.value})}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary"
                 placeholder="e.g. 100"
               />
             </div>
           </div>
           <button
             onClick={handleAddRule}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-black hover:bg-primary/90"
           >
             Add Tier
           </button>
@@ -206,10 +206,10 @@ export default function ProductBulkPricingPage() {
 
         {showUnlimitedWarning && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Unlimited bulk tier</h3>
-              <p className="text-sm text-gray-600 mb-5">
-                With Unlimited enabled, the bulk price only covers the minimum bundle size.
+            <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-white mb-2">Unlimited bulk tier</h3>
+              <p className="text-sm text-gray-400 mb-5">
+                Unlimited means the bulk price only covers the minimum bundle size.
                 Any units above that minimum are charged at the regular product price.
               </p>
               <div className="flex gap-3">
@@ -219,13 +219,13 @@ export default function ProductBulkPricingPage() {
                     setNewRule((prev) => ({ ...prev, maxQuantity: '' }))
                     setShowUnlimitedWarning(false)
                   }}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                  className="flex-1 rounded-lg bg-primary px-4 py-3 font-semibold text-black hover:bg-primary/90"
                 >
                   I Understand
                 </button>
                 <button
                   onClick={() => setShowUnlimitedWarning(false)}
-                  className="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-semibold text-gray-800 hover:bg-gray-300"
+                  className="flex-1 rounded-lg bg-zinc-800 px-4 py-3 font-semibold text-white hover:bg-zinc-700"
                 >
                   Cancel
                 </button>
