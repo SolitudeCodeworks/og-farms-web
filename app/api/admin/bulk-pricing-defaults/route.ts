@@ -107,16 +107,12 @@ export async function POST(request: Request) {
     // Update in transaction
     await prisma.$transaction(async (tx) => {
       // Deactivate old rules for this range
-      await tx.bulkPricingRule.updateMany(
-        {
-          where: {
-            rangeKey: range,
-          },
+      await tx.bulkPricingRule.updateMany({
+        where: {
+          rangeKey: range,
         },
-        {
-          data: { isActive: false }
-        }
-      )
+        data: { isActive: false }
+      })
 
       // Create new rules for this range
       await tx.bulkPricingRule.createMany({

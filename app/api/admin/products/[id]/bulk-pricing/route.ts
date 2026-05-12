@@ -131,14 +131,10 @@ export async function POST(
     // Update rules in transaction: delete old, create new
     await prisma.$transaction(async (tx) => {
       // Delete existing rules for this product (soft delete via isActive = false)
-      await tx.bulkPricingRule.updateMany(
-        {
-          where: { productId: id },
-        },
-        {
-          data: { isActive: false }
-        }
-      )
+      await tx.bulkPricingRule.updateMany({
+        where: { productId: id },
+        data: { isActive: false }
+      })
 
       // Create new rules
       await tx.bulkPricingRule.createMany({

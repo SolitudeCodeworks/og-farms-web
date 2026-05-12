@@ -106,7 +106,7 @@ export function getSubcategoryLabel(value: string): string {
 export function getRangeLabel(subcategory: string | null): string {
   if (!subcategory) return "Standard"
   const normalized = subcategory.toLowerCase()
-  const range = PRICING_RANGES.find(r => r.subcategories.includes(normalized))
+  const range = PRICING_RANGES.find(r => (r.subcategories as readonly string[]).includes(normalized))
   return range?.label || "Standard"
 }
 
@@ -114,6 +114,6 @@ export function getRangeLabel(subcategory: string | null): string {
 export function getRangeKey(subcategory: string | null): string | null {
   if (!subcategory) return null
   const normalized = subcategory.toLowerCase()
-  const range = PRICING_RANGES.find(r => r.subcategories.includes(normalized))
+  const range = PRICING_RANGES.find(r => (r.subcategories as readonly string[]).includes(normalized))
   return range?.key || null
 }
