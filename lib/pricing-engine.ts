@@ -79,7 +79,7 @@ export async function calculateLinePrice(
       where: {
         ...where,
         isActive: true,
-        minQuantity: { lte: quantity },
+        minQuantity: { gte: 2, lte: quantity },
         OR: [
           { maxQuantity: null },
           { maxQuantity: { gte: quantity } }
@@ -205,16 +205,25 @@ export function validateTierRules(
   // Sort by minQuantity
   const sorted = [...rules].sort((a, b) => a.minQuantity - b.minQuantity)
 
+  for (const rule of sorted) {
+    if (rule.minQuantity < 2) {
+      return {
+        valid: false,
+        error: "Bulk tiers must start at quantity 2 or higher",
+      }
+    }
+
+    if (rule.maxQuantity !== null && rule.maxQuantity < rule.minQuantity) {
+      return {
+        valid: false,
+        error: `Tier max quantity must be greater than or equal to min quantity for ${rule.minQuantity}`,
+      }
+    }
+  }
+
   for (let i = 0; i < sorted.length - 1; i++) {
     const current = sorted[i]
     const next = sorted[i + 1]
-
-    if (current.maxQuantity !== null && current.maxQuantity < current.minQuantity) {
-      return {
-        valid: false,
-        error: `Tier max quantity must be greater than or equal to min quantity for ${current.minQuantity}`,
-      }
-    }
 
     // Check for duplicate minQuantity
     if (current.minQuantity === next.minQuantity) {

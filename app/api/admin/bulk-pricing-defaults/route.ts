@@ -90,9 +90,9 @@ export async function POST(request: Request) {
 
     // Validate all required fields
     for (const rule of rules) {
-      if (!rule.minQuantity || rule.minQuantity < 1) {
+      if (!rule.minQuantity || rule.minQuantity < 2) {
         return NextResponse.json(
-          { error: "All tiers must have minQuantity >= 1" },
+          { error: "All tiers must have minQuantity >= 2" },
           { status: 400 }
         )
       }

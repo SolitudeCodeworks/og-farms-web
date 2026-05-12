@@ -24,8 +24,8 @@ export async function PUT(
       : Number(body.maxQuantity)
     const tierPrice = Number(body.tierPrice)
 
-    if (!Number.isFinite(minQuantity) || minQuantity < 1) {
-      return NextResponse.json({ error: "Min quantity must be at least 1" }, { status: 400 })
+    if (!Number.isFinite(minQuantity) || minQuantity < 2) {
+      return NextResponse.json({ error: "Min quantity must be at least 2" }, { status: 400 })
     }
 
     if (!Number.isFinite(tierPrice) || tierPrice <= 0) {

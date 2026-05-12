@@ -47,8 +47,14 @@ export default function ProductBulkPricingPage() {
       return
     }
 
+    const parsedMinQuantity = parseInt(newRule.minQuantity)
+    if (Number.isNaN(parsedMinQuantity) || parsedMinQuantity < 2) {
+      setMessage('Min quantity must be at least 2')
+      return
+    }
+
     const rule = {
-      minQuantity: parseInt(newRule.minQuantity),
+      minQuantity: parsedMinQuantity,
       maxQuantity: newRule.maxQuantity ? parseInt(newRule.maxQuantity) : null,
       tierPrice: parseFloat(newRule.tierPrice)
     }
@@ -142,7 +148,7 @@ export default function ProductBulkPricingPage() {
                 <label className="block text-sm font-medium text-gray-300">Min Quantity (g)</label>
                 <button
                   type="button"
-                  title="Minimum quantity where this tier starts."
+                  title="Minimum quantity where this tier starts. Must be 2 or higher."
                   className="text-gray-400 hover:text-white"
                   aria-label="Min quantity help"
                 >
@@ -151,11 +157,11 @@ export default function ProductBulkPricingPage() {
               </div>
               <input
                 type="number"
-                min="1"
+                min="2"
                 value={newRule.minQuantity}
                 onChange={(e) => setNewRule({...newRule, minQuantity: e.target.value})}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-gray-400 outline-none focus:border-primary"
-                placeholder="e.g. 3"
+                placeholder="e.g. 2"
               />
             </div>
             <div>

@@ -81,8 +81,8 @@ export default function SubcategoryBulkPricingPage() {
     const maxQuantity = newRule.maxQuantity ? Number(newRule.maxQuantity) : null
     const tierPrice = Number(newRule.tierPrice)
 
-    if (Number.isNaN(minQuantity) || minQuantity < 1) {
-      setMessage('Min quantity must be at least 1')
+    if (Number.isNaN(minQuantity) || minQuantity < 2) {
+      setMessage('Min quantity must be at least 2')
       return
     }
 
@@ -211,7 +211,7 @@ export default function SubcategoryBulkPricingPage() {
                 <label className="block text-sm text-gray-300">Min Quantity</label>
                 <button
                   type="button"
-                  title="Minimum quantity where this tier starts."
+                  title="Minimum quantity where this tier starts. Must be 2 or higher."
                   className="text-gray-400 hover:text-white"
                   aria-label="Min quantity help"
                 >
@@ -220,11 +220,11 @@ export default function SubcategoryBulkPricingPage() {
               </div>
               <input
                 type="number"
-                min="1"
+                min="2"
                 value={newRule.minQuantity}
                 onChange={(e) => setNewRule((prev) => ({ ...prev, minQuantity: e.target.value }))}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white placeholder:text-gray-400 outline-none focus:border-primary"
-                placeholder="e.g. 1"
+                placeholder="e.g. 2"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function SubcategoryBulkPricingPage() {
 
               <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <p className="font-semibold text-white">Example</p>
-                <p>1 unit - R65</p>
+                <p>1 unit - base product price (no bulk deal)</p>
                 <p>2 units - R120</p>
                 <p>3+ units - R170</p>
                 <p className="mt-2">If customer buys 3 units, the 3+ tier is applied.</p>
@@ -325,7 +325,7 @@ export default function SubcategoryBulkPricingPage() {
 
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
                 <p className="font-semibold text-white">Good Setup Pattern</p>
-                <p>Use sequential mins: 1, 2, 3, 5, 10.</p>
+                <p>Use sequential mins: 2, 3, 5, 10.</p>
                 <p>Leave max blank for the last open-ended tier.</p>
               </div>
             </div>

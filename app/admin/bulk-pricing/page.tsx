@@ -369,7 +369,7 @@ export default function BulkPricingAdminPage() {
                 <span className="mb-1 block text-sm text-gray-300">Min Quantity</span>
                 <input
                   type="number"
-                  min="1"
+                  min="2"
                   value={editForm.minQuantity}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, minQuantity: e.target.value }))}
                   className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-primary"
@@ -543,7 +543,7 @@ export default function BulkPricingAdminPage() {
 
               <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <p className="font-semibold text-white">Example Ladder</p>
-                <p>1 unit - R65</p>
+                <p>1 unit - base product price (no bulk deal)</p>
                 <p>2 units - R120</p>
                 <p>3+ units - R170</p>
                 <p className="mt-2 text-gray-300">At checkout, the highest matching tier is used for the quantity in cart.</p>

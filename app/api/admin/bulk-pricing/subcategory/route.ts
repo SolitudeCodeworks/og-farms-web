@@ -94,8 +94,8 @@ export async function POST(request: Request) {
     }
 
     for (const rule of rules) {
-      if (!rule.minQuantity || Number(rule.minQuantity) < 1) {
-        return NextResponse.json({ error: "All tiers need min quantity >= 1" }, { status: 400 })
+      if (!rule.minQuantity || Number(rule.minQuantity) < 2) {
+        return NextResponse.json({ error: "All tiers need min quantity >= 2" }, { status: 400 })
       }
 
       if (
