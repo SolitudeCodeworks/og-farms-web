@@ -45,7 +45,6 @@ export interface BulkTierMatch {
   maxQuantity: number | null
   tierPrice: number
   appliedFrom: "product-override" | "range-default"
-  coveredQuantity: number
 }
 
 export interface PricingBreakdown {
@@ -81,6 +80,10 @@ export async function calculateLinePrice(
         ...where,
         isActive: true,
         minQuantity: { lte: quantity },
+        OR: [
+          { maxQuantity: null },
+          { maxQuantity: { gte: quantity } }
+        ],
       },
     })
 
@@ -119,11 +122,7 @@ export async function calculateLinePrice(
   let bulkDiscount = 0
 
   if (tierRule) {
-    const coveredQuantity = tierRule.maxQuantity === null
-      ? tierRule.minQuantity
-      : Math.min(quantity, tierRule.maxQuantity)
-
-    effectivePrice = tierRule.tierPrice + Math.max(0, quantity - coveredQuantity) * basePrice
+    effectivePrice = tierRule.tierPrice
     bulkDiscount = basePrice * quantity - effectivePrice
 
     return {
@@ -134,7 +133,6 @@ export async function calculateLinePrice(
         maxQuantity: tierRule.maxQuantity,
         tierPrice: tierRule.tierPrice,
         appliedFrom,
-        coveredQuantity,
       },
       subtotal: basePrice * quantity,
       bulkDiscount,
@@ -223,7 +221,7 @@ export function validateTierRules(
       return { valid: false, error: "Duplicate minimum quantities not allowed" }
     }
 
-    // Check for overlap: current.max >= next.min
+    // If a max is supplied, it must end before the next tier starts.
     if (current.maxQuantity !== null && current.maxQuantity >= next.minQuantity) {
       return {
         valid: false,

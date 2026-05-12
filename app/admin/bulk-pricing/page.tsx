@@ -54,8 +54,6 @@ export default function BulkPricingAdminPage() {
   const [message, setMessage] = useState('')
   const [editingRule, setEditingRule] = useState<BulkPricingRule | null>(null)
   const [editForm, setEditForm] = useState<EditFormState>(DEFAULT_EDIT_FORM)
-  const [editUnlimited, setEditUnlimited] = useState(false)
-  const [showUnlimitedWarning, setShowUnlimitedWarning] = useState(false)
   const [configureOpen, setConfigureOpen] = useState(false)
   const [configureMode, setConfigureMode] = useState<'product' | 'subcategory'>('product')
   const [productSearch, setProductSearch] = useState('')
@@ -74,10 +72,8 @@ export default function BulkPricingAdminPage() {
         maxQuantity: editingRule.maxQuantity?.toString() || '',
         tierPrice: editingRule.tierPrice.toString(),
       })
-      setEditUnlimited(editingRule.maxQuantity === null)
     } else {
       setEditForm(DEFAULT_EDIT_FORM)
-      setEditUnlimited(false)
     }
   }, [editingRule])
 
@@ -166,7 +162,7 @@ export default function BulkPricingAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           minQuantity: editForm.minQuantity,
-          maxQuantity: editUnlimited ? null : editForm.maxQuantity,
+          maxQuantity: editForm.maxQuantity,
           tierPrice: editForm.tierPrice,
         }),
       })
@@ -226,16 +222,6 @@ export default function BulkPricingAdminPage() {
     setMessage(`Showing deals for ${subcategory}. Select a product in Products and open Bulk Pricing to configure its tiers.`)
     setSearchQuery(subcategory)
     router.push(`/admin/products?search=${encodeURIComponent(subcategory)}`)
-  }
-
-  const handleEditUnlimitedChange = (checked: boolean) => {
-    if (checked) {
-      setShowUnlimitedWarning(true)
-      return
-    }
-
-    setEditUnlimited(false)
-    setEditForm((prev) => ({ ...prev, maxQuantity: '' }))
   }
 
   return (
@@ -321,7 +307,7 @@ export default function BulkPricingAdminPage() {
                       {rule.product.subcategory ? ` / ${rule.product.subcategory}` : ''}
                     </td>
                     <td className="py-4 pr-4 text-sm text-gray-300">
-                      {rule.maxQuantity ? `${rule.minQuantity} - ${rule.maxQuantity}` : `${rule.minQuantity}+ (Unlimited)`}
+                      {rule.maxQuantity ? `${rule.minQuantity} - ${rule.maxQuantity}` : `${rule.minQuantity}+`}
                     </td>
                     <td className="py-4 pr-4 text-sm text-primary font-semibold">
                       R{rule.tierPrice.toFixed(2)}
@@ -380,26 +366,14 @@ export default function BulkPricingAdminPage() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-gray-300">Max Quantity</span>
-                <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-900 p-3">
-                  <label className="flex items-center gap-3 text-sm text-gray-300">
-                    <input
-                      type="checkbox"
-                      checked={editUnlimited}
-                      onChange={(e) => handleEditUnlimitedChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-zinc-600 text-primary focus:ring-primary"
-                    />
-                    Unlimited
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.maxQuantity}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, maxQuantity: e.target.value }))}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-white outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-gray-500"
-                    placeholder={editUnlimited ? 'Unlimited selected' : 'Optional'}
-                    disabled={editUnlimited}
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={editForm.maxQuantity}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, maxQuantity: e.target.value }))}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-primary"
+                  placeholder="Optional"
+                />
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-gray-300">Tier Price</span>
@@ -424,36 +398,6 @@ export default function BulkPricingAdminPage() {
               </button>
               <button
                 onClick={() => setEditingRule(null)}
-                className="flex-1 rounded-full bg-zinc-800 px-4 py-3 font-bold text-white transition-colors hover:bg-zinc-700"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showUnlimitedWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-white">Unlimited tier rule</h3>
-            <p className="mt-2 text-sm text-gray-400">
-              Unlimited means the bulk price only covers the minimum bundle size.
-              Any quantity above that minimum will fall back to the regular product price.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  setEditUnlimited(true)
-                  setEditForm((prev) => ({ ...prev, maxQuantity: '' }))
-                  setShowUnlimitedWarning(false)
-                }}
-                className="flex-1 rounded-full bg-primary px-4 py-3 font-bold text-black transition-colors hover:bg-primary/90"
-              >
-                I Understand
-              </button>
-              <button
-                onClick={() => setShowUnlimitedWarning(false)}
                 className="flex-1 rounded-full bg-zinc-800 px-4 py-3 font-bold text-white transition-colors hover:bg-zinc-700"
               >
                 Cancel
