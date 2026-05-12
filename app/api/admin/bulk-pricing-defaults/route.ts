@@ -29,7 +29,7 @@ export async function GET(request: Request) {
         rangeKey: { not: null },
         isActive: true
       },
-      groupBy: ['rangeKey'],
+      distinct: ['rangeKey'],
       select: {
         rangeKey: true
       }
