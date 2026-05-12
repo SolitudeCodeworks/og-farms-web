@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { useCart } from "@/contexts/cart-context"
 import Link from "next/link"
 import { Star, StarHalf, ShoppingCart, Heart, ArrowLeft, Send, Trash2 } from "lucide-react"
+import BulkPricingTiers from "@/components/product/bulk-pricing-tiers"
 
 interface Product {
   id: string
@@ -574,6 +575,15 @@ export default function ProductDetailPage() {
                 </span>
               )}
             </div>
+
+            {/* Bulk Pricing Tiers Display */}
+            {product && (
+              <BulkPricingTiers 
+                productId={product.id}
+                basePrice={product.price}
+                category={product.category}
+              />
+            )}
 
             {/* THC/CBD/Strain/Subcategory */}
             {(product.thcContent || product.cbdContent || product.strain || product.subcategory) && (

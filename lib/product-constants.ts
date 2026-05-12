@@ -23,10 +23,52 @@ export const STRAIN_TYPES = [
 export const SUBCATEGORIES = [
   { value: "no", label: "Not Specified" },
   { value: "medical", label: "Medical Grade Indoor" },
-  { value: "promo_indoor", label: "Primo (Premium) Indoor" },
+  { value: "promo_indoor", label: "Connoisseur (Premium) Indoor" },
   { value: "indoor", label: "Indoor" },
   { value: "greenhouse", label: "Greenhouse" },
   { value: "outdoor", label: "Outdoor" },
+] as const
+
+/**
+ * Range-based pricing tiers (for Flower and Pre-Rolls)
+ * Maps subcategory to range display name and pricing metadata
+ */
+export const PRICING_RANGES = [
+  { 
+    key: "landrace",
+    label: "Landrace",
+    description: "Outdoor grown, budget-friendly options",
+    subcategories: ["outdoor"],
+    order: 1
+  },
+  { 
+    key: "greens",
+    label: "Greens",
+    description: "Greenhouse grown, balanced quality and value",
+    subcategories: ["greenhouse"],
+    order: 2
+  },
+  { 
+    key: "indoor",
+    label: "Indoor",
+    description: "Indoor grown, premium quality and potency",
+    subcategories: ["indoor"],
+    order: 3
+  },
+  { 
+    key: "connoisseur",
+    label: "Connoisseur",
+    description: "Premium indoor, top-shelf selection",
+    subcategories: ["promo_indoor"],
+    order: 4
+  },
+  { 
+    key: "medical",
+    label: "Medical",
+    description: "Medical-grade, therapeutic focus",
+    subcategories: ["medical"],
+    order: 5
+  },
 ] as const
 
 export const PRICE_RANGES = [
@@ -58,4 +100,20 @@ export function getStrainLabel(value: string): string {
 // Helper to get subcategory label from value
 export function getSubcategoryLabel(value: string): string {
   return SUBCATEGORIES.find(sub => sub.value === value)?.label || value
+}
+
+// Helper to get range label from subcategory
+export function getRangeLabel(subcategory: string | null): string {
+  if (!subcategory) return "Standard"
+  const normalized = subcategory.toLowerCase()
+  const range = PRICING_RANGES.find(r => r.subcategories.includes(normalized))
+  return range?.label || "Standard"
+}
+
+// Helper to get range key from subcategory
+export function getRangeKey(subcategory: string | null): string | null {
+  if (!subcategory) return null
+  const normalized = subcategory.toLowerCase()
+  const range = PRICING_RANGES.find(r => r.subcategories.includes(normalized))
+  return range?.key || null
 }

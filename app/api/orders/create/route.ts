@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { unstable_cache } from 'next/cache'
+import { calculateOrderTotals } from "@/lib/pricing-engine"
 
 // Cache admin emails for 5 minutes
 const getAdminEmails = unstable_cache(
@@ -89,6 +90,51 @@ export async function POST(request: Request) {
     })
     const disableStockChecks = disableStockChecksSetting?.value === 'true'
 
+    // CRITICAL: Fetch full product data for server-side pricing calculation
+    const productIds = items.map((item: any) => item.productId || item.id)
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        price: true,
+        category: true,
+        subcategory: true,
+      }
+    })
+
+    const productMap = new Map(products.map(p => [p.id, p]))
+    
+    // Enrich items with product data for pricing calculation
+    const itemsWithProducts = items.map((item: any) => ({
+      productId: item.productId || item.id,
+      quantity: item.quantity,
+      product: productMap.get(item.productId || item.id),
+    }))
+
+    // Server-side pricing calculation
+    let pricingBreakdown: any
+    try {
+      pricingBreakdown = await calculateOrderTotals(itemsWithProducts)
+    } catch (error) {
+      console.error("Pricing calculation failed:", error)
+      return NextResponse.json(
+        { error: "Failed to calculate order pricing" },
+        { status: 500 }
+      )
+    }
+
+    // Log total mismatch for audit
+    const clientTotal = totalAmount || (subtotal || 0)
+    const serverTotal = pricingBreakdown.subtotal + (shippingCost || 0)
+    if (Math.abs(clientTotal - serverTotal) > 1.0) {
+      console.warn(`⚠️ Order total mismatch:`, {
+        clientTotal,
+        serverTotal,
+        difference: Math.abs(clientTotal - serverTotal),
+        bulkDiscount: pricingBreakdown.bulkDiscountAmount,
+      })
+    }
+
     // Check stock availability first (outside transaction)
     if (!disableStockChecks) {
       for (const item of items) {
@@ -156,7 +202,8 @@ export async function POST(request: Request) {
         addressId = shippingAddress.id
       }
 
-      // Create order
+      // Create order with SERVER-CALCULATED totals
+      const serverCalculatedTotal = pricingBreakdown.subtotal + (shippingCost || 0)
       const newOrder = await tx.order.create({
         data: {
           userId: session?.user?.id,
@@ -175,15 +222,17 @@ export async function POST(request: Request) {
           deliveryState: deliveryMethod === 'delivery' && address ? address.province : null,
           deliveryZipCode: deliveryMethod === 'delivery' && address ? address.postalCode : null,
           deliveryCountry: deliveryMethod === 'delivery' ? 'South Africa' : null,
-          total: totalAmount,
-          subtotal: subtotal || totalAmount,
+          total: serverCalculatedTotal,
+          subtotal: pricingBreakdown.subtotal,
+          bulkDiscountApplied: pricingBreakdown.bulkDiscountAmount,
           tax: 0,
           shippingCost: shippingCost || 0,
           items: {
-            create: items.map((item: any) => ({
-              productId: item.productId || item.id,
-              quantity: item.quantity,
-              price: item.productPrice || item.product?.price || item.price
+            create: pricingBreakdown.lineBreakdowns.map((breakdown: any, idx: number) => ({
+              productId: itemsWithProducts[idx].productId,
+              quantity: breakdown.quantity,
+              price: breakdown.effectivePrice / breakdown.quantity,
+              bulkDiscountApplied: breakdown.bulkDiscount,
             }))
           }
         },
