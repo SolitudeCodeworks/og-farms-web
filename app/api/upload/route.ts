@@ -1,55 +1,32 @@
-import { put } from '@vercel/blob'
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.email || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = (await request.json()) as HandleUploadBody
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.email || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      )
-    }
-
-    console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type)
-
-    // Check if token exists
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('BLOB_READ_WRITE_TOKEN is not set')
-      return NextResponse.json(
-        { error: 'Upload service not configured' },
-        { status: 500 }
-      )
-    }
-
-    // Upload to Vercel Blob with random suffix to avoid conflicts
-    const blob = await put(file.name, file, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: true,
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+        maximumSizeInBytes: 10 * 1024 * 1024,
+      }),
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Upload completed:', blob.url)
+      },
     })
 
-    console.log('Upload successful:', blob.url)
-    return NextResponse.json({ url: blob.url })
+    return NextResponse.json(jsonResponse)
   } catch (error: any) {
-    console.error('Error uploading file:', error)
-    console.error('Error details:', error.message, error.stack)
-    return NextResponse.json(
-      { error: error.message || 'Failed to upload file' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 400 })
   }
 }

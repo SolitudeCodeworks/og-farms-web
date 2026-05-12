@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { PRODUCT_CATEGORIES, STRAIN_TYPES, SUBCATEGORIES } from "@/lib/product-constants"
+import { upload } from '@vercel/blob/client'
 
 export default function NewProductPage() {
   const router = useRouter()
@@ -96,23 +97,12 @@ export default function NewProductPage() {
         const file = files[i]
         setUploadProgress(`Uploading image ${i + 1} of ${files.length}... (${file.name})`)
 
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
+        const blob = await upload(file.name, file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
         })
-
-        if (response.ok) {
-          const data = await response.json()
-          uploadedUrls.push(data.url)
-          console.log('Uploaded:', data.url)
-        } else {
-          const errorData = await response.json()
-          console.error('Upload error:', errorData)
-          throw new Error(errorData.error || 'Upload failed')
-        }
+        uploadedUrls.push(blob.url)
+        console.log('Uploaded:', blob.url)
       }
 
       setFormData(prev => ({
