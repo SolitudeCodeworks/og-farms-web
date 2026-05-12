@@ -30,13 +30,6 @@ interface DbCartItem {
   }
 }
 
-interface CartPricingLine {
-  productId: string
-  lineTotal: number
-  baseLineTotal: number
-  bulkDiscount: number
-}
-
 export default function CartPage() {
   const { data: session } = useSession()
   const [guestCart, setGuestCart] = useState<GuestCartItem[]>([])
@@ -45,9 +38,6 @@ export default function CartPage() {
   const [deliveryFee, setDeliveryFee] = useState(0)
   const [ageVerified, setAgeVerified] = useState(true)
   const [hasAgeRestrictedItems, setHasAgeRestrictedItems] = useState(false)
-  const [pricingLines, setPricingLines] = useState<Record<string, CartPricingLine>>({})
-  const [bulkDiscountAmount, setBulkDiscountAmount] = useState(0)
-  const [pricingSubtotal, setPricingSubtotal] = useState(0)
 
   useEffect(() => {
     const loadCart = async () => {
@@ -107,55 +97,11 @@ export default function CartPage() {
   }
 
   const items = session ? dbCart : guestCart
-  const total = pricingSubtotal
+  const total = session 
+    ? dbCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
+    : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
   const shipping = deliveryFee
   const finalTotal = total + shipping
-
-  useEffect(() => {
-    const calculatePricing = async () => {
-      if (items.length === 0) {
-        setPricingLines({})
-        setBulkDiscountAmount(0)
-        setPricingSubtotal(0)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/cart/pricing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-            })),
-          }),
-        })
-
-        if (!response.ok) return
-
-        const data = await response.json()
-        const lineMap: Record<string, CartPricingLine> = {}
-
-        for (const line of data.lineItems || []) {
-          lineMap[line.productId] = {
-            productId: line.productId,
-            lineTotal: Number(line.lineTotal || 0),
-            baseLineTotal: Number(line.baseLineTotal || 0),
-            bulkDiscount: Number(line.bulkDiscount || 0),
-          }
-        }
-
-        setPricingLines(lineMap)
-        setBulkDiscountAmount(Number(data.bulkDiscountAmount || 0))
-        setPricingSubtotal(Number(data.subtotal || 0))
-      } catch (error) {
-        console.error('Error calculating cart pricing:', error)
-      }
-    }
-
-    calculatePricing()
-  }, [session, dbCart, guestCart])
 
   const updateDbQuantity = async (productId: string, newQuantity: number) => {
     try {
@@ -301,10 +247,6 @@ export default function CartPage() {
             const itemName = isGuest ? (item as GuestCartItem).productName : (item as DbCartItem).product.name
             const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as DbCartItem).product.price
             const itemCategory = isGuest ? '' : (item as DbCartItem).product.category
-            const linePricing = pricingLines[item.productId]
-            const lineTotal = linePricing ? linePricing.lineTotal : itemPrice * item.quantity
-            const baseLineTotal = linePricing ? linePricing.baseLineTotal : itemPrice * item.quantity
-            const hasBulkDiscount = linePricing ? linePricing.bulkDiscount > 0 : false
 
             return (
               <div
@@ -333,19 +275,9 @@ export default function CartPage() {
                       )}
                     </div>
                     <p className="font-semibold text-foreground">
-                      {formatPrice(lineTotal)}
+                      {formatPrice(itemPrice * item.quantity)}
                     </p>
                   </div>
-                  {hasBulkDiscount && (
-                    <p className="text-xs text-green-400 mt-1">
-                      Saved {formatPrice(linePricing.bulkDiscount)} on this item
-                    </p>
-                  )}
-                  {hasBulkDiscount && (
-                    <p className="text-xs text-muted-foreground line-through">
-                      Base {formatPrice(baseLineTotal)}
-                    </p>
-                  )}
 
                   <div className="mt-auto flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -410,14 +342,6 @@ export default function CartPage() {
                   {formatPrice(total)}
                 </span>
               </div>
-              {bulkDiscountAmount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Bulk savings</span>
-                  <span className="font-medium text-green-400">
-                    -{formatPrice(bulkDiscountAmount)}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Shipping</span>
                 <span className="font-medium text-foreground">

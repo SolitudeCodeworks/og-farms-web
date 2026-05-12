@@ -19,13 +19,6 @@ interface GuestCartItem {
   ageRestricted: boolean
 }
 
-interface CheckoutPricingLine {
-  productId: string
-  lineTotal: number
-  baseLineTotal: number
-  bulkDiscount: number
-}
-
 export default function CheckoutPage() {
   // Feature flags
 const DELIVERY_ENABLED = process.env.NEXT_PUBLIC_DELIVERY_ENABLED === 'true'
@@ -52,9 +45,6 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   const [storeStock, setStoreStock] = useState<Record<string, number>>({})
   const [checkingStock, setCheckingStock] = useState(false)
   const [deliveryFee, setDeliveryFee] = useState(0)
-  const [pricingLines, setPricingLines] = useState<Record<string, CheckoutPricingLine>>({})
-  const [bulkDiscountAmount, setBulkDiscountAmount] = useState(0)
-  const [pricingSubtotal, setPricingSubtotal] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>(PAYFAST_ENABLED ? 'online' : 'cash')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [disableStockChecks, setDisableStockChecks] = useState(false)
@@ -154,53 +144,9 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
   }
 
   const items = session ? dbCart : guestCart
-  const totalPrice = pricingSubtotal
-
-  useEffect(() => {
-    const calculatePricing = async () => {
-      if (items.length === 0) {
-        setPricingLines({})
-        setBulkDiscountAmount(0)
-        setPricingSubtotal(0)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/cart/pricing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-            })),
-          }),
-        })
-
-        if (!response.ok) return
-
-        const data = await response.json()
-        const lineMap: Record<string, CheckoutPricingLine> = {}
-
-        for (const line of data.lineItems || []) {
-          lineMap[line.productId] = {
-            productId: line.productId,
-            lineTotal: Number(line.lineTotal || 0),
-            baseLineTotal: Number(line.baseLineTotal || 0),
-            bulkDiscount: Number(line.bulkDiscount || 0),
-          }
-        }
-
-        setPricingLines(lineMap)
-        setBulkDiscountAmount(Number(data.bulkDiscountAmount || 0))
-        setPricingSubtotal(Number(data.subtotal || 0))
-      } catch (error) {
-        console.error('Error calculating checkout pricing:', error)
-      }
-    }
-
-    calculatePricing()
-  }, [session, dbCart, guestCart])
+  const totalPrice = session 
+    ? dbCart.reduce((sum: number, item: any) => sum + (item.product.price * item.quantity), 0)
+    : guestCart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0)
 
   const handleSuccess = async (reference: string) => {
     setIsProcessing(true)
@@ -821,9 +767,6 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   const itemPrice = isGuest ? (item as GuestCartItem).productPrice : (item as any).product?.price
                   const itemCategory = isGuest ? '' : (item as any).product?.category
                   const itemQuantity = item.quantity
-                  const linePricing = pricingLines[itemId]
-                  const lineTotal = linePricing ? linePricing.lineTotal : itemPrice * itemQuantity
-                  const hasBulkDiscount = linePricing ? linePricing.bulkDiscount > 0 : false
 
                   return (
                     <div
@@ -845,13 +788,9 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                       <div className="flex-1">
                         <h4 className="text-sm font-bold text-white">{itemName}</h4>
                         {itemCategory && <p className="text-xs text-gray-400">{itemCategory}</p>}
-                        <p className="text-sm text-primary font-bold mt-1">{formatPrice(lineTotal)}</p>
-                        <p className="text-xs text-gray-400">Qty {itemQuantity}</p>
-                        {hasBulkDiscount && (
-                          <p className="text-xs text-green-400">
-                            Bulk save {formatPrice(linePricing.bulkDiscount)}
-                          </p>
-                        )}
+                        <p className="text-sm text-primary font-bold mt-1">
+                          {formatPrice(itemPrice)} x {itemQuantity}
+                        </p>
                       </div>
                     </div>
                   )
@@ -863,12 +802,6 @@ const PAYFAST_ENABLED = process.env.NEXT_PUBLIC_PAYFAST_ENABLED === 'true'
                   <span className="text-gray-400">Subtotal:</span>
                   <span className="text-white font-bold">{formatPrice(totalPrice)}</span>
                 </div>
-                {bulkDiscountAmount > 0 && (
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-400">Bulk savings:</span>
-                    <span className="text-green-400 font-bold">-{formatPrice(bulkDiscountAmount)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-400">Delivery:</span>
                   <span className="text-white font-bold">
