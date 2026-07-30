@@ -103,7 +103,7 @@ export default async function Home() {
                 Featured Products
               </h2>
               <p className="mt-3 text-lg text-gray-400">
-                Choose your favorite strains. Prices will be calculated upon checkout.
+                Choose your favorite strains. Donations will be calculated upon checkout.
               </p>
             </div>
             <Link href="/shop" className="inline-block">
@@ -134,7 +134,7 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Shop By Category
+              Browse By Category
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Find exactly what you need, from flower to accessories
@@ -279,7 +279,7 @@ export default async function Home() {
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">Premium Quality</h3>
               <p className="text-gray-400">
-                Every product is carefully grown, tested, and curated for the best experience
+                Every product is carefully grown and curated for the best experience
               </p>
             </div>
 
@@ -290,9 +290,9 @@ export default async function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Fair Pricing</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Donations</h3>
               <p className="text-gray-400">
-                Transparent pricing with no hidden fees. Quality cannabis at honest prices
+                Transparent donations with no hidden fees. Quality cannabis for honest donations
               </p>
             </div>
 
@@ -399,7 +399,7 @@ export default async function Home() {
                   boxShadow: '0 4px 15px rgba(74, 222, 128, 0.3)',
                 }}
               >
-                Shop Now
+                View Menu
               </button>
             </Link>
             <Link href="/about">

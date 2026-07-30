@@ -204,7 +204,7 @@ export function Footer() {
             </Link>
           </div>
           <p className="mt-2 text-center text-xs text-gray-500">
-            Must be 18+ to purchase. Please consume responsibly.
+            Must be an 18+ member. Please consume responsibly.
           </p>
         </div>
       </div>

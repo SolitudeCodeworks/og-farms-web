@@ -65,7 +65,7 @@ export function Hero() {
                   e.currentTarget.style.boxShadow = '0 10px 40px rgba(74, 222, 128, 0.3)'
                 }}
               >
-                Shop Now →
+                View Menu →
               </button>
             </Link>
             <Link href="/about" className="inline-block">

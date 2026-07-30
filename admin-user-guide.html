@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OG Farms Admin Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 16px; color: #222; background: #f9f9f9; }
+
+  /* Cover page */
+  .cover {
+    background: #1a1a1a;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+  .cover .logo { font-size: 64px; margin-bottom: 24px; }
+  .cover h1 { font-size: 42px; font-weight: 900; letter-spacing: 2px; color: #7cba3c; margin-bottom: 12px; }
+  .cover h2 { font-size: 22px; font-weight: 400; color: #ccc; margin-bottom: 40px; }
+  .cover .subtitle { font-size: 15px; color: #888; border-top: 1px solid #333; padding-top: 24px; margin-top: 24px; }
+
+  /* Table of contents */
+  .toc {
+    background: #fff;
+    padding: 60px 80px;
+    page-break-after: always;
+  }
+  .toc h2 { font-size: 28px; color: #1a1a1a; margin-bottom: 30px; border-bottom: 3px solid #7cba3c; padding-bottom: 12px; }
+  .toc ol { list-style: none; counter-reset: toc-counter; }
+  .toc ol li { counter-increment: toc-counter; padding: 10px 0; border-bottom: 1px dotted #ddd; font-size: 16px; display: flex; align-items: center; gap: 12px; }
+  .toc ol li::before { content: counter(toc-counter); background: #7cba3c; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; flex-shrink: 0; }
+  .toc ol li span { color: #555; font-size: 14px; margin-left: auto; }
+
+  /* Section pages */
+  .section {
+    background: #fff;
+    padding: 60px 80px;
+    page-break-before: always;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 3px solid #7cba3c;
+    padding-bottom: 16px;
+  }
+  .section-icon { font-size: 36px; }
+  .section-header h2 { font-size: 28px; color: #1a1a1a; font-weight: 900; }
+  .section p.intro { font-size: 16px; color: #555; margin-bottom: 28px; line-height: 1.7; }
+
+  /* How-to cards */
+  .howto { margin-bottom: 36px; }
+  .howto h3 { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 14px; padding: 10px 16px; background: #f0f8e8; border-left: 4px solid #7cba3c; border-radius: 4px; }
+  .steps { list-style: none; counter-reset: step-counter; }
+  .steps li { counter-increment: step-counter; display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 15px; line-height: 1.6; }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before { content: counter(step-counter); background: #1a1a1a; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0; margin-top: 2px; }
+  .steps li strong { color: #7cba3c; }
+
+  /* Tip boxes */
+  .tip { background: #fffbe6; border: 1px solid #ffe066; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px; color: #7a6000; display: flex; gap: 10px; align-items: flex-start; }
+  .tip .tip-icon { font-size: 18px; flex-shrink: 0; }
+
+  .warning { background: #fff3f3; border: 1px solid #ffb3b3; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px; color: #800000; display: flex; gap: 10px; align-items: flex-start; }
+  .warning .tip-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+  .badge-green { background: #e6f7d6; color: #3a7a00; }
+  .badge-orange { background: #fff0d6; color: #8a5200; }
+  .badge-red { background: #ffe6e6; color: #8a0000; }
+  .badge-blue { background: #e6f0ff; color: #003a8a; }
+  .badge-grey { background: #eeeeee; color: #444; }
+
+  /* Quick reference table */
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+  th { background: #1a1a1a; color: #fff; padding: 10px 14px; text-align: left; }
+  td { padding: 10px 14px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+
+  /* Page numbers / footer */
+  .page-footer { margin-top: 60px; padding-top: 16px; border-top: 1px solid #eee; font-size: 12px; color: #aaa; text-align: center; }
+
+  @media print {
+    .section, .toc, .cover { padding: 40px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER PAGE ==================== -->
+<div class="cover">
+  <div class="logo">🌿</div>
+  <h1>OG FARMS</h1>
+  <h2>Admin Staff Guide</h2>
+  <p style="color:#aaa; font-size:18px; margin-top:12px;">Everything you need to run the website — step by step, no tech knowledge needed.</p>
+  <div class="subtitle">
+    For internal use only &nbsp;|&nbsp; Keep this document safe<br/>
+    <span style="color:#666; font-size:13px;">Generated June 2026</span>
+  </div>
+</div>
+
+<!-- ==================== TABLE OF CONTENTS ==================== -->
+<div class="toc">
+  <h2>What's In This Guide</h2>
+  <ol>
+    <li>Getting Into the Admin Panel <span>Logging in & finding your way around</span></li>
+    <li>The Dashboard <span>Your home screen overview</span></li>
+    <li>Products <span>Adding, editing & removing products</span></li>
+    <li>Bulk Pricing <span>Setting discounts for buying in bulk</span></li>
+    <li>Stores <span>Managing your store locations</span></li>
+    <li>Inventory / Stock <span>Keeping track of stock levels</span></li>
+    <li>Orders <span>Viewing & processing customer orders</span></li>
+    <li>PayFast Statements <span>Checking your payment history</span></li>
+    <li>Settings <span>Contact info, delivery fees & admin users</span></li>
+    <li>Quick Reference <span>Common tasks at a glance</span></li>
+  </ol>
+  <div class="page-footer">OG Farms Admin Guide — Confidential</div>
+</div>
+
+<!-- ==================== SECTION 1: LOGGING IN ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🔐</span>
+    <h2>1. Getting Into the Admin Panel</h2>
+  </div>
+  <p class="intro">Before you can do anything, you need to log in. Here's how to get to your admin area.</p>
+
+  <div class="howto">
+    <h3>How to Log In</h3>
+    <ol class="steps">
+      <li>Open your web browser (Chrome, Edge, or Safari).</li>
+      <li>Go to the OG Farms website address and add <strong>/login</strong> at the end (your manager will give you the full address).</li>
+      <li>Type in your <strong>email address</strong> and <strong>password</strong>.</li>
+      <li>Click the <strong>Login</strong> button.</li>
+      <li>Once logged in, go to the website address and add <strong>/admin</strong> at the end — this takes you to the admin area.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Tip:</strong> Bookmark the admin page so you can get back to it quickly next time. Just go to <strong>/admin</strong> and save it in your browser favourites.</div>
+  </div>
+
+  <div class="warning">
+    <span class="tip-icon">⚠️</span>
+    <div><strong>Important:</strong> If you see a message saying "Access Denied" or you get sent back to the home page, it means your account hasn't been set up as an admin yet. Ask your manager to give you admin access in Settings.</div>
+  </div>
+
+  <div class="howto">
+    <h3>Finding Your Way Around</h3>
+    <ol class="steps">
+      <li>Once you're in the admin area, you'll see a <strong>menu on the left side</strong> of the screen.</li>
+      <li>Click any menu item to go to that section — for example, click <strong>Products</strong> to manage products.</li>
+      <li>To go back to the main overview at any time, click <strong>Dashboard</strong> at the top of the menu.</li>
+    </ol>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 1: Getting In</div>
+</div>
+
+<!-- ==================== SECTION 2: DASHBOARD ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📊</span>
+    <h2>2. The Dashboard</h2>
+  </div>
+  <p class="intro">The Dashboard is your home screen. Every time you open the admin area, this is the first thing you'll see. It gives you a quick snapshot of how the business is doing.</p>
+
+  <div class="howto">
+    <h3>What You'll See on the Dashboard</h3>
+    <ol class="steps">
+      <li>At the top you'll see <strong>4 summary boxes</strong> — these update automatically so you always see live numbers.</li>
+      <li><strong>Total Stores</strong> — how many store locations you have active.</li>
+      <li><strong>Pending Orders</strong> — orders that customers have placed and are waiting to be handled.</li>
+      <li><strong>Low Stock Items</strong> — products that are running out and need to be restocked soon.</li>
+      <li><strong>Total Revenue</strong> — the total amount of money earned from all sales (shown in Rands).</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>Quick Action Buttons</h3>
+    <ol class="steps">
+      <li>Below the summary boxes you'll see 3 quick buttons.</li>
+      <li>Click <strong>"Add New Store"</strong> to quickly jump to adding a new store location.</li>
+      <li>Click <strong>"Manage Stock"</strong> to jump to the inventory/stock page.</li>
+      <li>Click <strong>"View Orders"</strong> to jump to the orders page.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Tip:</strong> Check the Dashboard first thing every day. If you see <strong>Pending Orders</strong> or <strong>Low Stock Items</strong> with a number, those need your attention.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 2: Dashboard</div>
+</div>
+
+<!-- ==================== SECTION 3: PRODUCTS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📦</span>
+    <h2>3. Products</h2>
+  </div>
+  <p class="intro">This is where you manage everything that's for sale on the website. You can add new products, make changes to existing ones, or remove products that are no longer available.</p>
+
+  <div class="howto">
+    <h3>How to View All Products</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Products</strong>.</li>
+      <li>You'll see a list of all your products with their name, category, price, and a photo.</li>
+      <li>If you have many products, use the <strong>search bar at the top</strong> — type a product name and it will filter the list for you.</li>
+      <li>Use the <strong>page buttons at the bottom</strong> to move between pages of products.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Add a New Product</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Products</strong>.</li>
+      <li>Click the green <strong>"Add Product"</strong> button in the top right corner.</li>
+      <li>Fill in the product details — name, description, price, category, THC/CBD content.</li>
+      <li>Upload a photo of the product by clicking the image area.</li>
+      <li>When you're happy with everything, click the <strong>Save</strong> button at the bottom.</li>
+      <li>The product will now appear on the website and in your products list.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Edit an Existing Product</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Products</strong>.</li>
+      <li>Find the product you want to change (use the search bar if needed).</li>
+      <li>Click the <strong>Edit</strong> button next to that product.</li>
+      <li>Make your changes — you can update the name, price, description, photo, or anything else.</li>
+      <li>Click <strong>Save</strong> when you're done. Changes show on the website straight away.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Delete a Product</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Products</strong>.</li>
+      <li>Find the product you want to remove.</li>
+      <li>Click the <strong>Delete</strong> button next to it.</li>
+      <li>A message will pop up asking "Are you sure?" — click <strong>Confirm</strong> to permanently remove the product.</li>
+    </ol>
+  </div>
+
+  <div class="warning">
+    <span class="tip-icon">⚠️</span>
+    <div><strong>Warning:</strong> Deleting a product cannot be undone. If you just want to temporarily hide something, rather edit it and mark it as inactive instead of deleting it.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 3: Products</div>
+</div>
+
+<!-- ==================== SECTION 4: BULK PRICING ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">💰</span>
+    <h2>4. Bulk Pricing</h2>
+  </div>
+  <p class="intro">Bulk pricing lets you give customers a better deal when they buy more of something. For example, 1 item costs R100, but if they buy 5 or more, each item drops to R80. You set the rules here.</p>
+
+  <div class="howto">
+    <h3>How to View Existing Bulk Pricing Rules</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Bulk Pricing</strong>.</li>
+      <li>You'll see a list of all the bulk deals currently set up — showing the product name, how many units trigger the deal, and the discounted price.</li>
+      <li>Use the <strong>search bar</strong> to find a specific product's pricing rules.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Set Up Bulk Pricing for One Product</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Bulk Pricing</strong>.</li>
+      <li>Click the <strong>"Configure Bulk Pricing"</strong> button.</li>
+      <li>A window pops up — choose <strong>"Search Product"</strong>.</li>
+      <li>Type the product name and click on it when it appears.</li>
+      <li>Fill in the details:<br/>
+        — <strong>From quantity</strong> (e.g. 2 — meaning the deal kicks in when they buy 2 or more)<br/>
+        — <strong>To quantity</strong> (optional — e.g. 5, so the deal applies only from 2 to 5 units)<br/>
+        — <strong>Price per unit</strong> at that quantity level (e.g. R80)
+      </li>
+      <li>Click <strong>Save</strong> to apply the deal.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Set Up Bulk Pricing for a Whole Category</h3>
+    <ol class="steps">
+      <li>Click <strong>"Configure Bulk Pricing"</strong>.</li>
+      <li>Choose <strong>"Choose Subcategory"</strong> instead.</li>
+      <li>Pick the category you want the deal to apply to (e.g. "Edibles").</li>
+      <li>Set your quantity range and discounted price the same way as above.</li>
+      <li>This will automatically apply the same deal to every product in that category.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Edit or Remove a Bulk Pricing Rule</h3>
+    <ol class="steps">
+      <li>Find the rule in the list.</li>
+      <li>Click <strong>Edit</strong> to change the quantity range or price, then save.</li>
+      <li>Click <strong>Delete</strong> to completely remove the deal. A confirmation message will appear — click Confirm.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Example:</strong> If a product costs R100 each normally, you could set it so buying 3–9 drops it to R85 each, and buying 10 or more drops it to R70 each. You'd create two separate rules for this.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 4: Bulk Pricing</div>
+</div>
+
+<!-- ==================== SECTION 5: STORES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🏪</span>
+    <h2>5. Stores</h2>
+  </div>
+  <p class="intro">This is where you manage your physical store locations. Each store can have its own stock levels and can be turned on or off independently.</p>
+
+  <div class="howto">
+    <h3>How to View Your Stores</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Stores</strong>.</li>
+      <li>You'll see cards for each store showing its name, address, phone number, and how many products are in stock there.</li>
+      <li>A green <strong>"Active"</strong> badge means the store is visible to customers. A grey <strong>"Inactive"</strong> badge means it's hidden.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Add a New Store</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Stores</strong>.</li>
+      <li>Click the <strong>"Add Store"</strong> button in the top right corner.</li>
+      <li>Fill in the store details — name, address, phone number, email, and whether it offers pickup.</li>
+      <li>Click <strong>Save</strong>. The new store will appear in your list.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Edit a Store</h3>
+    <ol class="steps">
+      <li>Find the store you want to change.</li>
+      <li>Click the <strong>Edit</strong> button on its card.</li>
+      <li>Update any details you need to change.</li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Turn a Store On or Off</h3>
+    <ol class="steps">
+      <li>Find the store you want to toggle.</li>
+      <li>Click the <strong>power button icon</strong> on the store card.</li>
+      <li>If the store was Active, it will become Inactive (hidden from customers). If it was Inactive, it will become Active (visible to customers).</li>
+      <li>No saving needed — it changes immediately.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Delete a Store</h3>
+    <ol class="steps">
+      <li>Find the store you want to remove.</li>
+      <li>Click the <strong>Delete</strong> button on its card.</li>
+      <li>Confirm when asked. The store will be permanently removed.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Tip:</strong> If a store is temporarily closed (like for a holiday), turn it Off instead of deleting it. That way all the stock and settings are still there when you turn it back on.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 5: Stores</div>
+</div>
+
+<!-- ==================== SECTION 6: INVENTORY ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📋</span>
+    <h2>6. Inventory / Stock</h2>
+  </div>
+  <p class="intro">Inventory is where you keep track of how much stock you have for each product at each store. When stock runs low, this is where you update it.</p>
+
+  <div class="howto">
+    <h3>How to View Stock Levels</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Inventory</strong>.</li>
+      <li>You'll see a list showing each product, which store it's at, and how many units are in stock.</li>
+      <li>Each item will have a coloured status badge:<br/>
+        <span class="badge badge-green">In Stock</span> — plenty available &nbsp;
+        <span class="badge badge-orange">Low Stock</span> — running low, needs restocking &nbsp;
+        <span class="badge badge-red">No Stock</span> — completely out
+      </li>
+      <li>Use the <strong>search bar</strong> to find a specific product, or use the <strong>Store dropdown</strong> to filter by one store.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Update Stock (Add, Remove, or Set a Number)</h3>
+    <ol class="steps">
+      <li>Find the product and store you want to update in the list.</li>
+      <li>Click the <strong>"Adjust Stock"</strong> button next to it.</li>
+      <li>A window pops up with 3 options:<br/>
+        — <strong>Add ➕</strong> — adds units to what's already there (e.g. you received 50 more units)<br/>
+        — <strong>Remove ➖</strong> — removes units (e.g. stock was damaged or written off)<br/>
+        — <strong>Set 📝</strong> — sets the stock to an exact number (e.g. you counted and there are exactly 30 units)
+      </li>
+      <li>Click which action you want, type the number, and you'll see a preview of what the new stock count will be.</li>
+      <li>Click <strong>Confirm</strong> to save the change.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Add a Product to a Store's Stock (for the First Time)</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Inventory</strong>.</li>
+      <li>Click the <strong>"Add Stock"</strong> button in the top right corner.</li>
+      <li>Select the product and the store from the dropdowns.</li>
+      <li>Enter the starting quantity.</li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="warning">
+    <span class="tip-icon">⚠️</span>
+    <div><strong>Important:</strong> If there's a red banner at the top of the Inventory page showing "Low Stock Alerts", those products need to be restocked urgently. Don't ignore this — customers won't be able to order them.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 6: Inventory</div>
+</div>
+
+<!-- ==================== SECTION 7: ORDERS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🛒</span>
+    <h2>7. Orders</h2>
+  </div>
+  <p class="intro">When a customer places an order on the website, it shows up here. This is where you manage everything from the moment an order comes in to when it's been delivered or picked up.</p>
+
+  <div class="howto">
+    <h3>How to View Orders</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Orders</strong>.</li>
+      <li>You'll see a list of all orders. At the top there are summary boxes showing totals and active orders.</li>
+      <li>Each order card shows the order number, customer name, what they ordered, the total price, and the current status.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>Understanding Order Statuses</h3>
+    <ol class="steps">
+      <li><span class="badge badge-orange">Processing</span> — the order has been paid for and is being prepared.</li>
+      <li><span class="badge badge-blue">Out for Delivery</span> — the order is on its way to the customer.</li>
+      <li><span class="badge badge-blue">Picked Up</span> — the customer collected their order in store.</li>
+      <li><span class="badge badge-green">Completed</span> — the order has been successfully delivered or collected.</li>
+      <li><span class="badge badge-red">Cancelled</span> — the order was cancelled.</li>
+      <li><span class="badge badge-grey">Refunded</span> — the customer was given their money back.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Process an Order (Move It Forward)</h3>
+    <ol class="steps">
+      <li>Find the order you want to update.</li>
+      <li>Click the <strong>"Manage Order"</strong> button on the order card.</li>
+      <li>A window will pop up showing a button for the next step (e.g. "Mark as Out for Delivery" or "Mark as Completed").</li>
+      <li>Click that button to move the order to the next stage.</li>
+      <li>The order status badge will update immediately.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to View Customer Details for an Order</h3>
+    <ol class="steps">
+      <li>Find the order.</li>
+      <li>Click the <strong>"Customer Information"</strong> button.</li>
+      <li>You'll see the customer's name, email, phone number, and their delivery or pickup address.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to View or Print an Invoice</h3>
+    <ol class="steps">
+      <li>Find the order.</li>
+      <li>Click the <strong>"View Invoice"</strong> button.</li>
+      <li>The invoice will open in a new tab as a PDF. You can print it from there or save it.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Cancel or Refund an Order</h3>
+    <ol class="steps">
+      <li>Find the order.</li>
+      <li>Click <strong>"Manage Order"</strong>.</li>
+      <li>In the window, you'll see a <strong>"Cancel Order"</strong> or <strong>"Refund Order"</strong> button.</li>
+      <li>Click it, confirm when asked, and the order status will update.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Filter and Search Orders</h3>
+    <ol class="steps">
+      <li>Use the <strong>search bar</strong> to find an order by order number, customer name, or email.</li>
+      <li>Use the <strong>date buttons</strong> (Today, Last 7 Days, Last 30 Days) to narrow down by time.</li>
+      <li>Use the <strong>Store filter</strong> to see orders from one specific store only.</li>
+      <li>Use the <strong>Status filter</strong> to show only certain types of orders (e.g. just "Processing" orders that need action).</li>
+      <li>Use the <strong>Fulfillment filter</strong> to separate Delivery orders from Store Pickup orders.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Daily Routine:</strong> Start by filtering orders to <strong>"Processing"</strong> status — these are the ones waiting for you to take action. Work through them one by one each morning.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 7: Orders</div>
+</div>
+
+<!-- ==================== SECTION 8: PAYFAST STATEMENTS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">💳</span>
+    <h2>8. PayFast Statements</h2>
+  </div>
+  <p class="intro">This section shows you all the money that has come in through the website's online payment system (PayFast). You can see how much was received, what fees were taken, and download a full statement if needed.</p>
+
+  <div class="howto">
+    <h3>How to View Your Payment History</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>PayFast Statements</strong>.</li>
+      <li>Choose what time period you want to look at:<br/>
+        — <strong>Monthly</strong> — pick a specific month<br/>
+        — <strong>Weekly</strong> — pick a specific week starting date<br/>
+        — <strong>Daily</strong> — pick a specific day<br/>
+        — <strong>Range</strong> — choose a start date and end date
+      </li>
+      <li>Click the <strong>"Fetch Statement"</strong> button.</li>
+      <li>The screen will load your transactions for that period.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>Understanding the Summary Cards</h3>
+    <ol class="steps">
+      <li><strong>Total Received (Gross)</strong> — the full amount customers paid (shown in green).</li>
+      <li><strong>PayFast Fees</strong> — the amount PayFast kept as their charge for processing payments (shown in orange).</li>
+      <li><strong>Total Net</strong> — what you actually received after fees (shown in blue).</li>
+      <li><strong>Account Balance</strong> — your current balance in your PayFast account (shown in purple).</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Download a Statement</h3>
+    <ol class="steps">
+      <li>Fetch a statement for the period you want (see steps above).</li>
+      <li>Click the <strong>"Download CSV"</strong> button.</li>
+      <li>A file will download to your computer. You can open it in Excel or send it to your accountant.</li>
+    </ol>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 8: PayFast Statements</div>
+</div>
+
+<!-- ==================== SECTION 9: SETTINGS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">⚙️</span>
+    <h2>9. Settings</h2>
+  </div>
+  <p class="intro">Settings is where you control the general information on the website — things like your contact details, social media links, delivery fees, and who has admin access.</p>
+
+  <div class="howto">
+    <h3>How to Update Social Media Links</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Find the <strong>"Social Media Links"</strong> section.</li>
+      <li>Type or paste your Facebook, Instagram, TikTok, Twitter/X, YouTube, or LinkedIn page addresses into the boxes.</li>
+      <li>Scroll to the bottom and click <strong>"Save All Settings"</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Update Contact Information</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Find the <strong>"Contact Information"</strong> section.</li>
+      <li>Update your contact email address, phone number, and WhatsApp number.</li>
+      <li>Click <strong>"Save All Settings"</strong> at the bottom.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Change the Delivery Fee</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Find the <strong>"Pricing Settings"</strong> section.</li>
+      <li>Type the delivery fee amount in the box (in Rands). Set it to <strong>0</strong> for free delivery.</li>
+      <li>Click <strong>"Save All Settings"</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Turn Off Stock Checks (Allow Orders Even When Out of Stock)</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Find the <strong>"Inventory Settings"</strong> section.</li>
+      <li>Click the toggle next to <strong>"Disable Stock Checks"</strong> to turn it on.</li>
+      <li>When this is on, customers can still add products to their cart even if the stock shows as 0.</li>
+      <li>Click <strong>"Save All Settings"</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Give Someone Admin Access</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Scroll down to the <strong>"Admin Management"</strong> section.</li>
+      <li>In the <strong>"Promote User to Admin"</strong> box, type the person's email address.</li>
+      <li>Click <strong>"Search User"</strong>.</li>
+      <li>If the person has an account, their name and details will appear. Click <strong>"Make Admin"</strong>.</li>
+      <li>They will now have admin access the next time they log in.</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>How to Remove Someone's Admin Access</h3>
+    <ol class="steps">
+      <li>In the left menu, click <strong>Settings</strong>.</li>
+      <li>Scroll down to <strong>"Current Administrators"</strong>.</li>
+      <li>Find the person's name in the list.</li>
+      <li>Click the <strong>"Remove Admin"</strong> button next to their name.</li>
+      <li>They will lose admin access immediately.</li>
+    </ol>
+  </div>
+
+  <div class="warning">
+    <span class="tip-icon">⚠️</span>
+    <div><strong>Reminder:</strong> Always click <strong>"Save All Settings"</strong> at the bottom of the page after making any changes in Settings — otherwise your changes won't be saved.</div>
+  </div>
+
+  <div class="page-footer">OG Farms Admin Guide — Section 9: Settings</div>
+</div>
+
+<!-- ==================== SECTION 10: QUICK REFERENCE ==================== -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">⚡</span>
+    <h2>10. Quick Reference</h2>
+  </div>
+  <p class="intro">A cheat-sheet for the most common things you'll need to do every day.</p>
+
+  <table>
+    <tr>
+      <th>What do you want to do?</th>
+      <th>Where to go</th>
+      <th>What to click</th>
+    </tr>
+    <tr>
+      <td>Add a new product</td>
+      <td>Products</td>
+      <td>"Add Product" button (top right)</td>
+    </tr>
+    <tr>
+      <td>Change a product's price or details</td>
+      <td>Products</td>
+      <td>"Edit" button next to the product</td>
+    </tr>
+    <tr>
+      <td>Remove a product from the website</td>
+      <td>Products</td>
+      <td>"Delete" button next to the product</td>
+    </tr>
+    <tr>
+      <td>Update how much stock you have</td>
+      <td>Inventory</td>
+      <td>"Adjust Stock" button next to the product</td>
+    </tr>
+    <tr>
+      <td>See what orders need to be processed</td>
+      <td>Orders</td>
+      <td>Filter by "Processing" status</td>
+    </tr>
+    <tr>
+      <td>Mark an order as out for delivery</td>
+      <td>Orders</td>
+      <td>"Manage Order" → "Out for Delivery"</td>
+    </tr>
+    <tr>
+      <td>Mark an order as completed</td>
+      <td>Orders</td>
+      <td>"Manage Order" → "Completed"</td>
+    </tr>
+    <tr>
+      <td>Cancel an order</td>
+      <td>Orders</td>
+      <td>"Manage Order" → "Cancel Order"</td>
+    </tr>
+    <tr>
+      <td>Print a customer's invoice</td>
+      <td>Orders</td>
+      <td>"View Invoice" button on the order</td>
+    </tr>
+    <tr>
+      <td>Set a bulk discount for a product</td>
+      <td>Bulk Pricing</td>
+      <td>"Configure Bulk Pricing" → "Search Product"</td>
+    </tr>
+    <tr>
+      <td>Turn a store off temporarily</td>
+      <td>Stores</td>
+      <td>Power button icon on the store card</td>
+    </tr>
+    <tr>
+      <td>Add a new store location</td>
+      <td>Stores</td>
+      <td>"Add Store" button (top right)</td>
+    </tr>
+    <tr>
+      <td>Change the delivery fee</td>
+      <td>Settings</td>
+      <td>"Pricing Settings" section → Save All Settings</td>
+    </tr>
+    <tr>
+      <td>Give a staff member admin access</td>
+      <td>Settings</td>
+      <td>"Admin Management" → Search email → Make Admin</td>
+    </tr>
+    <tr>
+      <td>Download a payment report</td>
+      <td>PayFast Statements</td>
+      <td>Select period → Fetch Statement → Download CSV</td>
+    </tr>
+    <tr>
+      <td>Update contact info or social media links</td>
+      <td>Settings</td>
+      <td>Update the fields → Save All Settings</td>
+    </tr>
+  </table>
+
+  <div class="howto" style="margin-top:36px;">
+    <h3>Daily Checklist for Admin Staff</h3>
+    <ol class="steps">
+      <li>Check the <strong>Dashboard</strong> — note Pending Orders and Low Stock alerts.</li>
+      <li>Go to <strong>Orders</strong> → filter by "Processing" → work through each order and move it forward.</li>
+      <li>Go to <strong>Inventory</strong> → check for any <strong>"Low Stock"</strong> or <strong>"No Stock"</strong> items and update quantities after restocking.</li>
+      <li>Handle any other tasks — adding products, updating prices, or changing store info as needed.</li>
+    </ol>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div><strong>Remember:</strong> Any changes you make on the admin panel go live on the website immediately. Double-check prices and product details before saving.</div>
+  </div>
+
+  <div class="tip">
+    <span class="tip-icon">📞</span>
+    <div><strong>Need help?</strong> If something doesn't look right or you're not sure what to do, don't guess — contact your manager before making changes.</div>
+  </div>
+
+  <div class="page-footer" style="margin-top:80px;">
+    <strong>OG Farms Admin Guide</strong> — For Internal Use Only &nbsp;|&nbsp; June 2026<br/>
+    This guide covers all features of the OG Farms admin panel. Keep it somewhere safe and refer to it whenever you're unsure.
+  </div>
+</div>
+
+</body>
+</html>
