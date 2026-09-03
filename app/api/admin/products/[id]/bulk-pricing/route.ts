@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache } from "@/lib/cache"
 import { validateTierRules } from "@/lib/pricing-engine"
 
 export async function GET(
@@ -154,9 +153,6 @@ export async function POST(
         }))
       })
     })
-
-    // Invalidate cache
-    cache.invalidatePattern('^products:')
 
     const updated = await prisma.product.findUnique({
       where: { id },

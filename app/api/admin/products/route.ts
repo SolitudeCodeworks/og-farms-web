@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth"
 import type { Prisma } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache, cacheKeys } from "@/lib/cache"
 
 // GET all products (admin only - no age restrictions)
 export async function GET(request: Request) {
@@ -22,20 +21,6 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
     const subcategory = searchParams.get('subcategory') || ''
-
-    // Generate cache key based on query params
-    const cacheKey = cacheKeys.products({
-      page: page.toString(),
-      limit: limit.toString(),
-      search,
-      subcategory,
-    })
-
-    // Check cache first
-    const cachedResult = cache.get(cacheKey)
-    if (cachedResult) {
-      return NextResponse.json(cachedResult)
-    }
 
     const skip = (page - 1) * limit
 
@@ -72,9 +57,6 @@ export async function GET(request: Request) {
       totalPages,
       currentPage: page,
     }
-
-    // Cache the result for 24 hours
-    cache.set(cacheKey, result)
 
     return NextResponse.json(result)
   } catch (error) {
@@ -179,10 +161,6 @@ export async function POST(request: Request) {
 
       return newProduct
     })
-
-    // Invalidate all product cache entries
-    cache.invalidatePattern('^products:')
-    cache.invalidatePattern('^inventory:')
 
     return NextResponse.json({ product }, { status: 201 })
   } catch (error: any) {

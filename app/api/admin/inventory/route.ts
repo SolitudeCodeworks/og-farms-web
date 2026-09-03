@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache } from "@/lib/cache"
 
 export async function GET() {
   try {
@@ -121,9 +120,6 @@ export async function POST(request: Request) {
         }
       })
     }
-
-    // Invalidate inventory cache
-    cache.invalidatePattern('^inventory:')
 
     return NextResponse.json({ inventory }, { status: 201 })
   } catch (error) {

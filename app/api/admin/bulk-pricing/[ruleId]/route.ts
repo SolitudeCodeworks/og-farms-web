@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache } from "@/lib/cache"
 import { validateTierRules } from "@/lib/pricing-engine"
 
 export async function PUT(
@@ -77,8 +76,6 @@ export async function PUT(
       },
     })
 
-    cache.invalidatePattern('^products:')
-
     return NextResponse.json({ rule: updated })
   } catch (error) {
     console.error("Error updating bulk pricing rule:", error)
@@ -112,8 +109,6 @@ export async function DELETE(
       where: { id: ruleId },
       data: { isActive: false },
     })
-
-    cache.invalidatePattern('^products:')
 
     return NextResponse.json({ message: "Bulk pricing rule deleted" })
   } catch (error) {

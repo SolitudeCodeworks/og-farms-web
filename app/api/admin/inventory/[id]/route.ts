@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache } from "@/lib/cache"
 
 export async function PATCH(
   request: Request,
@@ -48,9 +47,6 @@ export async function PATCH(
       }
     })
 
-    // Invalidate inventory cache
-    cache.invalidatePattern('^inventory:')
-
     return NextResponse.json({ inventory })
   } catch (error) {
     console.error("Error updating inventory:", error)
@@ -81,9 +77,6 @@ export async function DELETE(
     await prisma.storeInventory.delete({
       where: { id }
     })
-
-    // Invalidate inventory cache
-    cache.invalidatePattern('^inventory:')
 
     return NextResponse.json({ success: true })
   } catch (error) {

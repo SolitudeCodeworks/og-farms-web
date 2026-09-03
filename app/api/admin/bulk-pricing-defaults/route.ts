@@ -9,7 +9,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { cache } from "@/lib/cache"
 import { validateTierRules } from "@/lib/pricing-engine"
 
 export async function GET(request: Request) {
@@ -126,9 +125,6 @@ export async function POST(request: Request) {
         }))
       })
     })
-
-    // Invalidate cache
-    cache.invalidatePattern('^products:')
 
     return NextResponse.json(
       { message: `Bulk pricing for ${range} updated successfully` },
